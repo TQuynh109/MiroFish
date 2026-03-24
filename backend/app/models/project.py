@@ -1,6 +1,7 @@
 """
-项目上下文管理
-用于在服务端持久化项目状态，避免前端在接口间传递大量数据
+Quản lý context (ngữ cảnh) của dự án
+Được sử dụng để lưu trữ trạng thái dự án trên server (persistence),
+giúp tránh việc frontend phải gửi đi một lượng lớn dữ liệu mỗi lần gọi API.
 """
 
 import os
@@ -15,45 +16,45 @@ from ..config import Config
 
 
 class ProjectStatus(str, Enum):
-    """项目状态"""
-    CREATED = "created"              # 刚创建，文件已上传
-    ONTOLOGY_GENERATED = "ontology_generated"  # 本体已生成
-    GRAPH_BUILDING = "graph_building"    # 图谱构建中
-    GRAPH_COMPLETED = "graph_completed"  # 图谱构建完成
-    FAILED = "failed"                # 失败
+    """Trạng thái hiện tại của dự án"""
+    CREATED = "created"              # Dự án vừa được tạo, các file đã được tải lên thành công
+    ONTOLOGY_GENERATED = "ontology_generated"  # Đã hoàn tất khởi tạo Ontology 
+    GRAPH_BUILDING = "graph_building"    # Tri thức đồ thị (Knowledge Graph) đang được xây dựng
+    GRAPH_COMPLETED = "graph_completed"  # Đã hoàn thành quá trình Graph
+    FAILED = "failed"                # Thiết lập / Xử lý gặp lỗi
 
 
 @dataclass
 class Project:
-    """项目数据模型"""
+    """Mô hình dữ liệu (Data model) của dự án"""
     project_id: str
     name: str
     status: ProjectStatus
     created_at: str
     updated_at: str
     
-    # 文件信息
+    # File information
     files: List[Dict[str, str]] = field(default_factory=list)  # [{filename, path, size}]
     total_text_length: int = 0
     
-    # 本体信息（接口1生成后填充）
+    # Thông tin ontology (được điền sau khi API 1 xử lý xong)
     ontology: Optional[Dict[str, Any]] = None
     analysis_summary: Optional[str] = None
     
-    # 图谱信息（接口2完成后填充）
+    # Thông tin graph (được điền sau khi API 2 hoàn thành)
     graph_id: Optional[str] = None
     graph_build_task_id: Optional[str] = None
     
-    # 配置
+    # Cấu hình
     simulation_requirement: Optional[str] = None
     chunk_size: int = 500
     chunk_overlap: int = 50
     
-    # 错误信息
+    # Thông tin lỗi
     error: Optional[str] = None
     
     def to_dict(self) -> Dict[str, Any]:
-        """转换为字典"""
+        """Biến đổi đối tượng (Object) thành Dictionary (để dễ dàng chuyển thành JSON và lưu trữ)"""
         return {
             "project_id": self.project_id,
             "name": self.name,
@@ -74,7 +75,7 @@ class Project:
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Project':
-        """从字典创建"""
+        """Khởi tạo một instance Project từ dữ liệu kiểu Dictionary (khi load lên từ hệ thống lưu trữ)"""
         status = data.get('status', 'created')
         if isinstance(status, str):
             status = ProjectStatus(status)
@@ -99,46 +100,46 @@ class Project:
 
 
 class ProjectManager:
-    """项目管理器 - 负责项目的持久化存储和检索"""
+    """Quản lý các dự án (ProjectManager) - Chịu trách nhiệm lưu trữ và truy xuất thông tin dự án"""
     
-    # 项目存储根目录
+    # Thư mục gốc để lưu trữ toàn bộ dữ liệu dự án trên máy chủ
     PROJECTS_DIR = os.path.join(Config.UPLOAD_FOLDER, 'projects')
     
     @classmethod
     def _ensure_projects_dir(cls):
-        """确保项目目录存在"""
+        """Đảm bảo thư mục lưu trữ dự án đã được tạo, nếu không có thì self tạo mới"""
         os.makedirs(cls.PROJECTS_DIR, exist_ok=True)
     
     @classmethod
     def _get_project_dir(cls, project_id: str) -> str:
-        """获取项目目录路径"""
+        """Đường dẫn tới thư mục lưu trữ tương ứng với project_id"""
         return os.path.join(cls.PROJECTS_DIR, project_id)
     
     @classmethod
     def _get_project_meta_path(cls, project_id: str) -> str:
-        """获取项目元数据文件路径"""
+        """Đường dẫn lấy file cài đặt metadata (thường là project.json)"""
         return os.path.join(cls._get_project_dir(project_id), 'project.json')
     
     @classmethod
     def _get_project_files_dir(cls, project_id: str) -> str:
-        """获取项目文件存储目录"""
+        """Đường dẫn đến thư mục chứa các file nguyên thuỷ do người dùng kéo thả tải lên cho dự án"""
         return os.path.join(cls._get_project_dir(project_id), 'files')
     
     @classmethod
     def _get_project_text_path(cls, project_id: str) -> str:
-        """获取项目提取文本存储路径"""
+        """Lấy vị trí của tệp văn bản (txt) đã được hệ thống trích xuất nội dung"""
         return os.path.join(cls._get_project_dir(project_id), 'extracted_text.txt')
     
     @classmethod
     def create_project(cls, name: str = "Unnamed Project") -> Project:
         """
-        创建新项目
+        Khởi tạo và tạo mới cấu trúc dự án trên server
         
         Args:
-            name: 项目名称
+            name: Tên của dự án
             
         Returns:
-            新创建的Project对象
+            Project object vừa được tạo
         """
         cls._ensure_projects_dir()
         
@@ -153,20 +154,20 @@ class ProjectManager:
             updated_at=now
         )
         
-        # 创建项目目录结构
+        # Thiết lập các thư mục con trong không gian thư mục của project
         project_dir = cls._get_project_dir(project_id)
         files_dir = cls._get_project_files_dir(project_id)
         os.makedirs(project_dir, exist_ok=True)
         os.makedirs(files_dir, exist_ok=True)
         
-        # 保存项目元数据
+        # Ghi các trường thông tin (metadata) của project vào file cứng
         cls.save_project(project)
         
         return project
     
     @classmethod
     def save_project(cls, project: Project) -> None:
-        """保存项目元数据"""
+        """Ghi chồng cấu hình cập nhật (metadata mới) đối của project vào file (Mặc định: project.json) """
         project.updated_at = datetime.now().isoformat()
         meta_path = cls._get_project_meta_path(project.project_id)
         
@@ -176,10 +177,10 @@ class ProjectManager:
     @classmethod
     def get_project(cls, project_id: str) -> Optional[Project]:
         """
-        获取项目
+        Get Project
         
         Args:
-            project_id: 项目ID
+            project_id: Project ID
             
         Returns:
             Project对象，如果不存在返回None
@@ -197,13 +198,13 @@ class ProjectManager:
     @classmethod
     def list_projects(cls, limit: int = 50) -> List[Project]:
         """
-        列出所有项目
+        Lấy danh sách tất cả các dự án (projects) đang có trên system
         
         Args:
-            limit: 返回数量限制
+            limit: Giới hạn số lượng hiển thị (mặc định lấy 50 project)
             
         Returns:
-            项目列表，按创建时间倒序
+            Danh sách gồm các Object Project, xếp theo ngày/giờ giảm dần (từ mới tạo -> cũ nhất)
         """
         cls._ensure_projects_dir()
         
@@ -213,7 +214,7 @@ class ProjectManager:
             if project:
                 projects.append(project)
         
-        # 按创建时间倒序排序
+        # Sắp xếp lại lịch sử project theo thứ tự giảm dần thời gian
         projects.sort(key=lambda p: p.created_at, reverse=True)
         
         return projects[:limit]
@@ -221,47 +222,47 @@ class ProjectManager:
     @classmethod
     def delete_project(cls, project_id: str) -> bool:
         """
-        删除项目及其所有文件
+        Xoá vĩnh viễn dữ liệu về project và mọi file liên quan của nó khỏi server
         
         Args:
-            project_id: 项目ID
+            project_id: Mã ID của Project
             
         Returns:
-            是否删除成功
+            Boolean đại diện cờ Thành công / Thất bại của việc xoá
         """
         project_dir = cls._get_project_dir(project_id)
         
         if not os.path.exists(project_dir):
             return False
         
-        shutil.rmtree(project_dir)
+        shutil.rmtree(project_dir) # Xoá toàn bộ thư mục dữ liệu project_id
         return True
     
     @classmethod
     def save_file_to_project(cls, project_id: str, file_storage, original_filename: str) -> Dict[str, str]:
         """
-        保存上传的文件到项目目录
+        Ghi dữ liệu file đính kèm mà người dùng upload lên vào kho dự án
         
         Args:
-            project_id: 项目ID
-            file_storage: Flask的FileStorage对象
-            original_filename: 原始文件名
+            project_id: Mã định danh của Project
+            file_storage: Đối tượng Request File (từ framework, VD: của thư viện Flask/FastAPI) chứa nội dung file byte
+            original_filename: Tên ban đầu từ máy tính người dùng
             
         Returns:
-            文件信息字典 {filename, path, size}
+            Object chứa kết quả lưu file mới gồm {tên ban đầu, tên hash được lưu, đường dẫn đầy đủ, dung lượng}
         """
         files_dir = cls._get_project_files_dir(project_id)
         os.makedirs(files_dir, exist_ok=True)
         
-        # 生成安全的文件名
+        # Biến đổi tên file thành chuỗi an toàn độc nhất (UUID) để giữ các phiên bản không bị ghi đè, với phần mở rộng ban đầu
         ext = os.path.splitext(original_filename)[1].lower()
         safe_filename = f"{uuid.uuid4().hex[:8]}{ext}"
         file_path = os.path.join(files_dir, safe_filename)
         
-        # 保存文件
+        # Uỷ quyền lưu vào đường dẫn đích
         file_storage.save(file_path)
         
-        # 获取文件大小
+        # Đếm kích thước dung lượng (byte) của tập tin tĩnh tại ổ cứng
         file_size = os.path.getsize(file_path)
         
         return {
@@ -273,14 +274,14 @@ class ProjectManager:
     
     @classmethod
     def save_extracted_text(cls, project_id: str, text: str) -> None:
-        """保存提取的文本"""
+        """Tạo/ghi văn bản trích xuất (từ nội dung phân tích File upload) cho dự án vào folder dữ liệu"""
         text_path = cls._get_project_text_path(project_id)
         with open(text_path, 'w', encoding='utf-8') as f:
             f.write(text)
     
     @classmethod
     def get_extracted_text(cls, project_id: str) -> Optional[str]:
-        """获取提取的文本"""
+        """Đọc và lấy nội dung File văn bản được trích xuất nếu có trước đó"""
         text_path = cls._get_project_text_path(project_id)
         
         if not os.path.exists(text_path):
@@ -291,7 +292,7 @@ class ProjectManager:
     
     @classmethod
     def get_project_files(cls, project_id: str) -> List[str]:
-        """获取项目的所有文件路径"""
+        """Lấy danh sách link đường dẫn gốc (absolute path) của các files (Tài liệu upload) thuộc dự án này"""
         files_dir = cls._get_project_files_dir(project_id)
         
         if not os.path.exists(files_dir):

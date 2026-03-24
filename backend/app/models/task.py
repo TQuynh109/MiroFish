@@ -1,6 +1,6 @@
 """
-任务状态管理
-用于跟踪长时间运行的任务（如图谱构建）
+Quản lý trạng thái Task (tác vụ)
+Được sử dụng để theo dõi các tác vụ chạy ngầm mất nhiều thời gian (ví dụ: xây dựng Knowledge Graph)
 """
 
 import uuid
@@ -12,30 +12,30 @@ from dataclasses import dataclass, field
 
 
 class TaskStatus(str, Enum):
-    """任务状态枚举"""
-    PENDING = "pending"          # 等待中
-    PROCESSING = "processing"    # 处理中
-    COMPLETED = "completed"      # 已完成
-    FAILED = "failed"            # 失败
+    """Định nghĩa các trạng thái (Enum) mà một Task có thể có"""
+    PENDING = "pending"          # Đang chờ (Task mới được tạo, chưa được xử lý)
+    PROCESSING = "processing"    # Đang xử lý (Hệ thống đang chạy ngầm Task này)
+    COMPLETED = "completed"      # Đã hoàn thành thành công
+    FAILED = "failed"            # Xảy ra lỗi và thất bại
 
 
 @dataclass
 class Task:
-    """任务数据类"""
+    """Lớp dữ liệu lưu trữ thông tin của một Task cụ thể"""
     task_id: str
     task_type: str
     status: TaskStatus
     created_at: datetime
     updated_at: datetime
-    progress: int = 0              # 总进度百分比 0-100
-    message: str = ""              # 状态消息
-    result: Optional[Dict] = None  # 任务结果
-    error: Optional[str] = None    # 错误信息
-    metadata: Dict = field(default_factory=dict)  # 额外元数据
-    progress_detail: Dict = field(default_factory=dict)  # 详细进度信息
+    progress: int = 0              # Phần trăm tiến độ quá trình chạy (0-100)
+    message: str = ""              # Thông báo trạng thái hiện tại để hiển thị cho người dùng
+    result: Optional[Dict] = None  # Kết quả trả về sau khi Task chạy xong
+    error: Optional[str] = None    # Thông tin chi tiết mỗi khi Task bị lỗi
+    metadata: Dict = field(default_factory=dict)  # Siêu dữ liệu bổ sung kèm theo (ví dụ: project_id)
+    progress_detail: Dict = field(default_factory=dict)  # Nội dung thông tin chi tiết về các bước trong tiến trình
     
     def to_dict(self) -> Dict[str, Any]:
-        """转换为字典"""
+        """Chuyển đổi Class thành Dictionary để map vào JSON API Response"""
         return {
             "task_id": self.task_id,
             "task_type": self.task_type,
@@ -53,15 +53,15 @@ class Task:
 
 class TaskManager:
     """
-    任务管理器
-    线程安全的任务状态管理
+    Trình quản lý Task
+    Đảm bảo quản lý trạng thái của các tác vụ được đồng bộ tốt trên nhiều luồng chạy (Thread-safe)
     """
     
     _instance = None
     _lock = threading.Lock()
     
     def __new__(cls):
-        """单例模式"""
+        """Kế thừa Singleton Pattern (Chỉ khởi tạo 1 instance duy nhất trên toàn ứng dụng)"""
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -72,14 +72,14 @@ class TaskManager:
     
     def create_task(self, task_type: str, metadata: Optional[Dict] = None) -> str:
         """
-        创建新任务
+        Tạo mới một Task và cho vào hàng đợi (quản lý state)
         
         Args:
-            task_type: 任务类型
-            metadata: 额外元数据
+            task_type: Loại tác vụ (vd: 'build_graph', 'generate_report', ...)
+            metadata: Dữ liệu đính kèm (vd: project_id liên quan để cập nhật dữ liệu sau này)
             
         Returns:
-            任务ID
+            Chuỗi Mã định danh ngẫu nhiên (UUID) của Task
         """
         task_id = str(uuid.uuid4())
         now = datetime.now()
@@ -99,7 +99,7 @@ class TaskManager:
         return task_id
     
     def get_task(self, task_id: str) -> Optional[Task]:
-        """获取任务"""
+        """Lấy thông tin một Task đang chạy/kết thúc dựa theo Task UUID"""
         with self._task_lock:
             return self._tasks.get(task_id)
     
@@ -114,16 +114,16 @@ class TaskManager:
         progress_detail: Optional[Dict] = None
     ):
         """
-        更新任务状态
+        Cập nhật tiến trình của Task
         
         Args:
-            task_id: 任务ID
-            status: 新状态
-            progress: 进度
-            message: 消息
-            result: 结果
-            error: 错误信息
-            progress_detail: 详细进度信息
+            task_id: Mã ID của Task đang chạy
+            status: Trạng thái cập nhật (Pending, Processing, Completed, Failed)
+            progress: % Tiến độ hiện tại
+            message: Tin nhắn mô tả ngắn gọn hiện trạng làm gì
+            result: Trả về kết quả đầu ra khi thành công
+            error: Lời nhắn/Exception khi thất bại
+            progress_detail: Các sub-tiến trình chi tiết
         """
         with self._task_lock:
             task = self._tasks.get(task_id)
@@ -143,26 +143,26 @@ class TaskManager:
                     task.progress_detail = progress_detail
     
     def complete_task(self, task_id: str, result: Dict):
-        """标记任务完成"""
+        """Hành động đánh dấu tác vụ đã kết thúc Thành Công và gán 100% cho progress"""
         self.update_task(
             task_id,
             status=TaskStatus.COMPLETED,
             progress=100,
-            message="任务完成",
+            message="The task has been completed!",
             result=result
         )
     
     def fail_task(self, task_id: str, error: str):
-        """标记任务失败"""
+        """Hành động đánh dấu tác vụ đã Thất Bại do lỗi"""
         self.update_task(
             task_id,
             status=TaskStatus.FAILED,
-            message="任务失败",
+            message="The task has an error!?",
             error=error
         )
     
     def list_tasks(self, task_type: Optional[str] = None) -> list:
-        """列出任务"""
+        """Liệt kê danh sách tất cả các Task (Hoặc filter theo type của task)"""
         with self._task_lock:
             tasks = list(self._tasks.values())
             if task_type:
@@ -170,7 +170,7 @@ class TaskManager:
             return [t.to_dict() for t in sorted(tasks, key=lambda x: x.created_at, reverse=True)]
     
     def cleanup_old_tasks(self, max_age_hours: int = 24):
-        """清理旧任务"""
+        """Dọn dẹp/xoá khỏi bộ nhớ các Task đã cũ (Đã hoàn thành hoặc lỗi sau N giờ) để tránh rò rỉ hoặc xài tốn RAM"""
         from datetime import timedelta
         cutoff = datetime.now() - timedelta(hours=max_age_hours)
         
