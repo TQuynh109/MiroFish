@@ -1,5 +1,5 @@
 """
-文本处理服务
+Dịch vụ xử lý văn bản (Text processing service)
 """
 
 from typing import List, Optional
@@ -7,11 +7,11 @@ from ..utils.file_parser import FileParser, split_text_into_chunks
 
 
 class TextProcessor:
-    """文本处理器"""
+    """Trình xử lý văn bản"""
     
     @staticmethod
     def extract_from_files(file_paths: List[str]) -> str:
-        """从多个文件提取文本"""
+        """Trích xuất và kết hợp văn bản từ nhiều file (các đường dẫn file truyền vào)"""
         return FileParser.extract_from_multiple(file_paths)
     
     @staticmethod
@@ -21,37 +21,37 @@ class TextProcessor:
         overlap: int = 50
     ) -> List[str]:
         """
-        分割文本
+        Chia nhỏ văn bản (Phân mảnh văn bản dài thành các đoạn nhỏ hơn - chunking)
         
         Args:
-            text: 原始文本
-            chunk_size: 块大小
-            overlap: 重叠大小
+            text: Văn bản gốc cần chia
+            chunk_size: Kích thước tối đa của mỗi đoạn (chunk)
+            overlap: Số ký tự chồng chéo giữa các đoạn liên tiếp (để giữ bối cảnh không bị đứt đoạn)
             
         Returns:
-            文本块列表
+            Danh sách gồm các mảng văn bản sau khi chia
         """
         return split_text_into_chunks(text, chunk_size, overlap)
     
     @staticmethod
     def preprocess_text(text: str) -> str:
         """
-        预处理文本
-        - 移除多余空白
-        - 标准化换行
+        Tiền xử lý văn bản (Làm sạch văn bản)
+        - Xoá bỏ các khoảng trắng thừa
+        - Chuẩn hoá định dạng xuống dòng (Line breaks)
         
         Args:
-            text: 原始文本
+            text: Văn bản thô ban đầu
             
         Returns:
-            处理后的文本
+            Văn bản đã được tinh giản, làm sạch
         """
         import re
         
-        # 标准化换行
+        # Chuẩn hoá ký tự xuống dòng (Windows \r\n hoặc Mac cũ \r thành \n chuẩn Linux)
         text = text.replace('\r\n', '\n').replace('\r', '\n')
         
-        # 移除连续空行（保留最多两个换行）
+        # Xoá các dòng trống liên tiếp (Chỉ giữ lại tối đa 2 lần xuống dòng liên tiếp)
         text = re.sub(r'\n{3,}', '\n\n', text)
         
         # 移除行首行尾空白
@@ -62,7 +62,7 @@ class TextProcessor:
     
     @staticmethod
     def get_text_stats(text: str) -> dict:
-        """获取文本统计信息"""
+        """Lấy một số thông tin thống kê về đoạn văn bản (Số ký tự, số dòng, số từ)"""
         return {
             "total_chars": len(text),
             "total_lines": text.count('\n') + 1,

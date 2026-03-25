@@ -1,5 +1,5 @@
 """
-工具模块
+Mô-đun tiện ích
 """
 
 from .file_parser import FileParser
