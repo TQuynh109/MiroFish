@@ -1,8 +1,8 @@
 """
-测试Profile格式生成是否符合OASIS要求
-验证：
-1. Twitter Profile生成CSV格式
-2. Reddit Profile生成JSON详细格式
+Kiểm tra việc sinh định dạng Profile có đúng yêu cầu OASIS hay không.
+Xác thực:
+1. Twitter Profile sinh ở định dạng CSV.
+2. Reddit Profile sinh ở định dạng JSON chi tiết.
 """
 
 import os
@@ -11,19 +11,19 @@ import json
 import csv
 import tempfile
 
-# 添加项目路径
+# Thêm đường dẫn dự án
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.services.oasis_profile_generator import OasisProfileGenerator, OasisAgentProfile
 
 
 def test_profile_formats():
-    """测试Profile格式"""
+    """Kiểm tra định dạng Profile"""
     print("=" * 60)
-    print("OASIS Profile格式测试")
+    print("Kiểm tra định dạng OASIS Profile")
     print("=" * 60)
     
-    # 创建测试Profile数据
+    # Tạo dữ liệu Profile kiểm thử
     test_profiles = [
         OasisAgentProfile(
             user_id=0,
@@ -63,84 +63,84 @@ def test_profile_formats():
     
     generator = OasisProfileGenerator.__new__(OasisProfileGenerator)
     
-    # 使用临时目录
+    # Dùng thư mục tạm
     with tempfile.TemporaryDirectory() as temp_dir:
         twitter_path = os.path.join(temp_dir, "twitter_profiles.csv")
         reddit_path = os.path.join(temp_dir, "reddit_profiles.json")
         
-        # 测试Twitter CSV格式
-        print("\n1. 测试Twitter Profile (CSV格式)")
+        # Kiểm tra định dạng Twitter CSV
+        print("\n1. Kiểm tra Twitter Profile (định dạng CSV)")
         print("-" * 40)
         generator._save_twitter_csv(test_profiles, twitter_path)
         
-        # 读取并验证CSV
+        # Đọc và xác thực CSV
         with open(twitter_path, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             rows = list(reader)
             
-        print(f"   文件: {twitter_path}")
-        print(f"   行数: {len(rows)}")
-        print(f"   表头: {list(rows[0].keys())}")
-        print(f"\n   示例数据 (第1行):")
+        print(f"   File: {twitter_path}")
+        print(f"   Rows: {len(rows)}")
+        print(f"   Headers: {list(rows[0].keys())}")
+        print(f"\n   Sample data (row 1):")
         for key, value in rows[0].items():
             print(f"     {key}: {value}")
         
-        # 验证必需字段
+        # Xác thực các trường bắt buộc
         required_twitter_fields = ['user_id', 'user_name', 'name', 'bio', 
                                    'friend_count', 'follower_count', 'statuses_count', 'created_at']
         missing = set(required_twitter_fields) - set(rows[0].keys())
         if missing:
-            print(f"\n   [错误] 缺少字段: {missing}")
+            print(f"\n   [ERROR] Missing fields: {missing}")
         else:
-            print(f"\n   [通过] 所有必需字段都存在")
+            print(f"\n   [PASS] All required fields are present")
         
-        # 测试Reddit JSON格式
-        print("\n2. 测试Reddit Profile (JSON详细格式)")
+        # Kiểm tra định dạng Reddit JSON
+        print("\n2. Kiểm tra Reddit Profile (định dạng JSON chi tiết)")
         print("-" * 40)
         generator._save_reddit_json(test_profiles, reddit_path)
         
-        # 读取并验证JSON
+        # Đọc và xác thực JSON
         with open(reddit_path, 'r', encoding='utf-8') as f:
             reddit_data = json.load(f)
         
-        print(f"   文件: {reddit_path}")
-        print(f"   条目数: {len(reddit_data)}")
-        print(f"   字段: {list(reddit_data[0].keys())}")
-        print(f"\n   示例数据 (第1条):")
+        print(f"   File: {reddit_path}")
+        print(f"   Entries: {len(reddit_data)}")
+        print(f"   Fields: {list(reddit_data[0].keys())}")
+        print(f"\n   Sample data (entry 1):")
         print(json.dumps(reddit_data[0], ensure_ascii=False, indent=4))
         
-        # 验证详细格式字段
+        # Xác thực các trường của định dạng chi tiết
         required_reddit_fields = ['realname', 'username', 'bio', 'persona']
         optional_reddit_fields = ['age', 'gender', 'mbti', 'country', 'profession', 'interested_topics']
         
         missing = set(required_reddit_fields) - set(reddit_data[0].keys())
         if missing:
-            print(f"\n   [错误] 缺少必需字段: {missing}")
+            print(f"\n   [ERROR] Missing required fields: {missing}")
         else:
-            print(f"\n   [通过] 所有必需字段都存在")
+            print(f"\n   [PASS] All required fields are present")
         
         present_optional = set(optional_reddit_fields) & set(reddit_data[0].keys())
-        print(f"   [信息] 可选字段: {present_optional}")
+        print(f"   [INFO] Optional fields: {present_optional}")
     
     print("\n" + "=" * 60)
-    print("测试完成!")
+    print("Test completed!")
     print("=" * 60)
 
 
 def show_expected_formats():
-    """显示OASIS期望的格式"""
+    """Hiển thị định dạng OASIS mong đợi"""
     print("\n" + "=" * 60)
-    print("OASIS 期望的Profile格式参考")
+    print("Tham chiếu định dạng Profile OASIS mong đợi")
     print("=" * 60)
     
-    print("\n1. Twitter Profile (CSV格式)")
+    print("\n1. Twitter Profile (định dạng CSV)")
     print("-" * 40)
     twitter_example = """user_id,user_name,name,bio,friend_count,follower_count,statuses_count,created_at
 0,user0,User Zero,I am user zero with interests in technology.,100,150,500,2023-01-01
 1,user1,User One,Tech enthusiast and coffee lover.,200,250,1000,2023-01-02"""
     print(twitter_example)
     
-    print("\n2. Reddit Profile (JSON详细格式)")
+    print("\n2. Reddit Profile (định dạng JSON chi tiết)")
     print("-" * 40)
     reddit_example = [
         {

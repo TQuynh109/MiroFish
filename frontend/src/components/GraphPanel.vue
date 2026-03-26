@@ -2,24 +2,24 @@
   <div class="graph-panel">
     <div class="panel-header">
       <span class="panel-title">Graph Relationship Visualization</span>
-      <!-- 顶部工具栏 (Internal Top Right) -->
+      <!-- Thanh công cụ phía trên (bên phải nội bộ) -->
       <div class="header-tools">
-        <button class="tool-btn" @click="$emit('refresh')" :disabled="loading" title="刷新图谱">
+        <button class="tool-btn" @click="$emit('refresh')" :disabled="loading" title="Refresh graph">
           <span class="icon-refresh" :class="{ 'spinning': loading }">↻</span>
           <span class="btn-text">Refresh</span>
         </button>
-        <button class="tool-btn" @click="$emit('toggle-maximize')" title="最大化/还原">
+        <button class="tool-btn" @click="$emit('toggle-maximize')" title="Maximize/Restore">
           <span class="icon-maximize">⛶</span>
         </button>
       </div>
     </div>
     
     <div class="graph-container" ref="graphContainer">
-      <!-- 图谱可视化 -->
+      <!-- Visualization of graph -->
       <div v-if="graphData" class="graph-view">
         <svg ref="graphSvg" class="graph-svg"></svg>
         
-        <!-- 构建中/模拟中提示 -->
+        <!-- Hint when building/simulating -->
         <div v-if="currentPhase === 1 || isSimulating" class="graph-building-hint">
           <div class="memory-icon-wrapper">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="memory-icon">
@@ -27,10 +27,10 @@
               <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-4.04z" />
             </svg>
           </div>
-          {{ isSimulating ? 'GraphRAG长短期记忆实时更新中' : '实时更新中...' }}
+          {{ isSimulating ? 'GraphRAG long-term and short-term memory updating in real time' : 'Updating in real time...' }}
         </div>
         
-        <!-- 模拟结束后的提示 -->
+        <!-- Hint after simulation finished -->
         <div v-if="showSimulationFinishedHint" class="graph-building-hint finished-hint">
           <div class="hint-icon-wrapper">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="hint-icon">
@@ -39,8 +39,8 @@
               <line x1="12" y1="8" x2="12.01" y2="8"></line>
             </svg>
           </div>
-          <span class="hint-text">还有少量内容处理中，建议稍后手动刷新图谱</span>
-          <button class="hint-close-btn" @click="dismissFinishedHint" title="关闭提示">
+          <span class="hint-text">Some content is still being processed, it is recommended to manually refresh the graph later</span>
+          <button class="hint-close-btn" @click="dismissFinishedHint" title="Close hint">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -48,7 +48,7 @@
           </button>
         </div>
         
-        <!-- 节点/边详情面板 -->
+        <!-- Panel chi tiết node/cạnh -->
         <div v-if="selectedItem" class="detail-panel">
           <div class="detail-panel-header">
             <span class="detail-title">{{ selectedItem.type === 'node' ? 'Node Details' : 'Relationship' }}</span>
@@ -58,7 +58,7 @@
             <button class="detail-close" @click="closeDetailPanel">×</button>
           </div>
           
-          <!-- 节点详情 -->
+          <!-- Chi tiết node -->
           <div v-if="selectedItem.type === 'node'" class="detail-content">
             <div class="detail-row">
               <span class="detail-label">Name:</span>
@@ -101,9 +101,9 @@
             </div>
           </div>
           
-          <!-- 边详情 -->
+          <!-- Chi tiết cạnh -->
           <div v-else class="detail-content">
-            <!-- 自环组详情 -->
+            <!-- Chi tiết nhóm self-loop -->
             <template v-if="selectedItem.data.isSelfLoopGroup">
               <div class="edge-relation-header self-loop-header">
                 {{ selectedItem.data.source_name }} - Self Relations
@@ -154,7 +154,7 @@
               </div>
             </template>
             
-            <!-- 普通边详情 -->
+            <!-- Chi tiết cạnh thông thường -->
             <template v-else>
               <div class="edge-relation-header">
                 {{ selectedItem.data.source_name }} → {{ selectedItem.data.name || 'RELATED_TO' }} → {{ selectedItem.data.target_name }}
@@ -200,20 +200,20 @@
         </div>
       </div>
       
-      <!-- 加载状态 -->
+      <!-- Trạng thái loading -->
       <div v-else-if="loading" class="graph-state">
         <div class="loading-spinner"></div>
-        <p>图谱数据加载中...</p>
+        <p>Graph data is loading...</p>
       </div>
       
-      <!-- 等待/空状态 -->
+      <!-- Trạng thái chờ/rỗng -->
       <div v-else class="graph-state">
         <div class="empty-icon">❖</div>
-        <p class="empty-text">等待本体生成...</p>
+        <p class="empty-text">Waiting for ontology generation...</p>
       </div>
     </div>
 
-    <!-- 底部图例 (Bottom Left) -->
+    <!-- Chú giải phía dưới (bên trái) -->
     <div v-if="graphData && entityTypes.length" class="graph-legend">
       <span class="legend-title">Entity Types</span>
       <div class="legend-items">
@@ -224,7 +224,7 @@
       </div>
     </div>
     
-    <!-- 显示边标签开关 -->
+    <!-- Công tắc hiển thị nhãn cạnh -->
     <div v-if="graphData" class="edge-labels-toggle">
       <label class="toggle-switch">
         <input type="checkbox" v-model="showEdgeLabels" />
@@ -251,26 +251,26 @@ const emit = defineEmits(['refresh', 'toggle-maximize'])
 const graphContainer = ref(null)
 const graphSvg = ref(null)
 const selectedItem = ref(null)
-const showEdgeLabels = ref(true) // 默认显示边标签
-const expandedSelfLoops = ref(new Set()) // 展开的自环项
-const showSimulationFinishedHint = ref(false) // 模拟结束后的提示
-const wasSimulating = ref(false) // 追踪之前是否在模拟中
+const showEdgeLabels = ref(true) // Mặc định hiển thị nhãn cạnh
+const expandedSelfLoops = ref(new Set()) // Các self-loop đang mở
+const showSimulationFinishedHint = ref(false) // Thông báo sau khi mô phỏng kết thúc
+const wasSimulating = ref(false) // Theo dõi trước đó có đang mô phỏng hay không
 
-// 关闭模拟结束提示
+// Đóng thông báo kết thúc mô phỏng
 const dismissFinishedHint = () => {
   showSimulationFinishedHint.value = false
 }
 
-// 监听 isSimulating 变化，检测模拟结束
+// Theo dõi thay đổi isSimulating để phát hiện kết thúc mô phỏng
 watch(() => props.isSimulating, (newValue, oldValue) => {
   if (wasSimulating.value && !newValue) {
-    // 从模拟中变为非模拟状态，显示结束提示
+    // Từ trạng thái mô phỏng chuyển sang không mô phỏng, hiển thị thông báo kết thúc
     showSimulationFinishedHint.value = true
   }
   wasSimulating.value = newValue
 }, { immediate: true })
 
-// 切换自环项展开/折叠状态
+// Toggle trạng thái mở/đóng của self-loop
 const toggleSelfLoop = (id) => {
   const newSet = new Set(expandedSelfLoops.value)
   if (newSet.has(id)) {
@@ -281,11 +281,11 @@ const toggleSelfLoop = (id) => {
   expandedSelfLoops.value = newSet
 }
 
-// 计算实体类型用于图例
+// Tính toán loại entity để hiển thị legend
 const entityTypes = computed(() => {
   if (!props.graphData?.nodes) return []
   const typeMap = {}
-  // 美观的颜色调色板
+  // Bảng màu đẹp
   const colors = ['#FF6B35', '#004E89', '#7B2D8E', '#1A936F', '#C5283D', '#E9724C', '#3498db', '#9b59b6', '#27ae60', '#f39c12']
   
   props.graphData.nodes.forEach(node => {
@@ -298,7 +298,7 @@ const entityTypes = computed(() => {
   return Object.values(typeMap)
 })
 
-// 格式化时间
+// Format thời gian
 const formatDateTime = (dateStr) => {
   if (!dateStr) return ''
   try {
@@ -318,7 +318,7 @@ const formatDateTime = (dateStr) => {
 
 const closeDetailPanel = () => {
   selectedItem.value = null
-  expandedSelfLoops.value = new Set() // 重置展开状态
+  expandedSelfLoops.value = new Set() // Reset trạng thái mở
 }
 
 let currentSimulation = null
@@ -328,7 +328,7 @@ let linkLabelBgRef = null
 const renderGraph = () => {
   if (!graphSvg.value || !props.graphData) return
   
-  // 停止之前的仿真
+  // Dừng simulation trước đó
   if (currentSimulation) {
     currentSimulation.stop()
   }
@@ -349,7 +349,7 @@ const renderGraph = () => {
   
   if (nodesData.length === 0) return
 
-  // Prep data
+  // Chuẩn bị dữ liệu
   const nodeMap = {}
   nodesData.forEach(n => nodeMap[n.uuid] = n)
   
@@ -362,16 +362,16 @@ const renderGraph = () => {
   
   const nodeIds = new Set(nodes.map(n => n.id))
   
-  // 处理边数据，计算同一对节点间的边数量和索引
+  // Xử lý dữ liệu cạnh, tính số lượng và chỉ số cạnh giữa cùng một cặp node
   const edgePairCount = {}
-  const selfLoopEdges = {} // 按节点分组的自环边
+  const selfLoopEdges = {} // Self-loop được nhóm theo node
   const tempEdges = edgesData
     .filter(e => nodeIds.has(e.source_node_uuid) && nodeIds.has(e.target_node_uuid))
   
-  // 统计每对节点之间的边数量，收集自环边
+  // Thống kê số cạnh giữa mỗi cặp node, thu thập self-loop
   tempEdges.forEach(e => {
     if (e.source_node_uuid === e.target_node_uuid) {
-      // 自环 - 收集到数组中
+      // Self-loop - gom vào mảng
       if (!selfLoopEdges[e.source_node_uuid]) {
         selfLoopEdges[e.source_node_uuid] = []
       }
@@ -386,9 +386,9 @@ const renderGraph = () => {
     }
   })
   
-  // 记录当前处理到每对节点的第几条边
+  // Ghi nhận đang xử lý cạnh thứ mấy của mỗi cặp node
   const edgePairIndex = {}
-  const processedSelfLoopNodes = new Set() // 已处理的自环节点
+  const processedSelfLoopNodes = new Set() // Các node self-loop đã xử lý
   
   const edges = []
   
@@ -396,9 +396,9 @@ const renderGraph = () => {
     const isSelfLoop = e.source_node_uuid === e.target_node_uuid
     
     if (isSelfLoop) {
-      // 自环边 - 每个节点只添加一条合并的自环
+      // Self-loop - mỗi node chỉ thêm một self-loop tổng hợp
       if (processedSelfLoopNodes.has(e.source_node_uuid)) {
-        return // 已处理过，跳过
+        return // Đã xử lý rồi, bỏ qua
       }
       processedSelfLoopNodes.add(e.source_node_uuid)
       
@@ -417,7 +417,7 @@ const renderGraph = () => {
           source_name: nodeName,
           target_name: nodeName,
           selfLoopCount: allSelfLoops.length,
-          selfLoopEdges: allSelfLoops // 存储所有自环边的详细信息
+          selfLoopEdges: allSelfLoops // Lưu toàn bộ thông tin chi tiết của self-loop
         }
       })
       return
@@ -428,19 +428,19 @@ const renderGraph = () => {
     const currentIndex = edgePairIndex[pairKey] || 0
     edgePairIndex[pairKey] = currentIndex + 1
     
-    // 判断边的方向是否与标准化方向一致（源UUID < 目标UUID）
+    // Kiểm tra hướng cạnh có trùng với hướng chuẩn hay không (source UUID < target UUID)
     const isReversed = e.source_node_uuid > e.target_node_uuid
     
-    // 计算曲率：多条边时分散开，单条边为直线
+    // Tính độ cong: nhiều cạnh thì tách ra, một cạnh thì là đường thẳng
     let curvature = 0
     if (totalCount > 1) {
-      // 均匀分布曲率，确保明显区分
-      // 曲率范围根据边数量增加，边越多曲率范围越大
+      // Phân bố độ cong đồng đều, đảm bảo dễ phân biệt
+      // Phạm vi độ cong tăng theo số lượng cạnh, càng nhiều cạnh thì phạm vi càng lớn
       const curvatureRange = Math.min(1.2, 0.6 + totalCount * 0.15)
       curvature = ((currentIndex / (totalCount - 1)) - 0.5) * curvatureRange * 2
       
-      // 如果边的方向与标准化方向相反，翻转曲率
-      // 这样确保所有边在同一参考系下分布，不会因方向不同而重叠
+      // Nếu hướng cạnh ngược với hướng chuẩn, đảo độ cong
+      // Nhờ vậy tất cả cạnh được phân bố trong cùng hệ quy chiếu, tránh chồng lấn do khác hướng
       if (isReversed) {
         curvature = -curvature
       }
@@ -463,16 +463,16 @@ const renderGraph = () => {
     })
   })
     
-  // Color scale
+  // Thang màu
   const colorMap = {}
   entityTypes.value.forEach(t => colorMap[t.name] = t.color)
   const getColor = (type) => colorMap[type] || '#999'
 
-  // Simulation - 根据边数量动态调整节点间距
+  // Simulation - điều chỉnh khoảng cách node theo số lượng cạnh
   const simulation = d3.forceSimulation(nodes)
     .force('link', d3.forceLink(edges).id(d => d.id).distance(d => {
-      // 根据这对节点之间的边数量动态调整距离
-      // 基础距离 150，每多一条边增加 40
+      // Điều chỉnh khoảng cách dựa trên số cạnh giữa cặp node này
+      // Khoảng cách cơ bản là 150, mỗi cạnh thêm tăng 50
       const baseDistance = 150
       const edgeCount = d.pairTotal || 1
       return baseDistance + (edgeCount - 1) * 50
@@ -480,7 +480,7 @@ const renderGraph = () => {
     .force('charge', d3.forceManyBody().strength(-400))
     .force('center', d3.forceCenter(width / 2, height / 2))
     .force('collide', d3.forceCollide(50))
-    // 添加向中心的引力，让独立的节点群聚集到中心区域
+    // Thêm lực hút về trung tâm để các cụm node độc lập gom lại gần trung tâm
     .force('x', d3.forceX(width / 2).strength(0.04))
     .force('y', d3.forceY(height / 2).strength(0.04))
   
@@ -488,44 +488,44 @@ const renderGraph = () => {
 
   const g = svg.append('g')
   
-  // Zoom
+  // Thu phóng
   svg.call(d3.zoom().extent([[0, 0], [width, height]]).scaleExtent([0.1, 4]).on('zoom', (event) => {
     g.attr('transform', event.transform)
   }))
 
-  // Links - 使用 path 支持曲线
+  // Links - dùng path để hỗ trợ đường cong
   const linkGroup = g.append('g').attr('class', 'links')
   
-  // 计算曲线路径
+  // Tính đường dẫn cho đường cong
   const getLinkPath = (d) => {
     const sx = d.source.x, sy = d.source.y
     const tx = d.target.x, ty = d.target.y
     
-    // 检测自环
+    // Kiểm tra self-loop
     if (d.isSelfLoop) {
-      // 自环：绘制一个圆弧从节点出发再返回
+      // Self-loop: vẽ một cung tròn đi ra từ node rồi quay lại
       const loopRadius = 30
-      // 从节点右侧出发，绕一圈回来
-      const x1 = sx + 8  // 起点偏移
+      // Bắt đầu từ bên phải node, đi một vòng rồi quay lại
+      const x1 = sx + 8
       const y1 = sy - 4
-      const x2 = sx + 8  // 终点偏移
+      const x2 = sx + 8
       const y2 = sy + 4
-      // 使用圆弧绘制自环（sweep-flag=1 顺时针）
+      // Dùng cung tròn để vẽ self-loop (sweep-flag=1 theo chiều kim đồng hồ)
       return `M${x1},${y1} A${loopRadius},${loopRadius} 0 1,1 ${x2},${y2}`
     }
     
     if (d.curvature === 0) {
-      // 直线
+      // Đường thẳng
       return `M${sx},${sy} L${tx},${ty}`
     }
     
-    // 计算曲线控制点 - 根据边数量和距离动态调整
+    // Tính điểm điều khiển của đường cong - điều chỉnh động theo số cạnh và khoảng cách
     const dx = tx - sx, dy = ty - sy
     const dist = Math.sqrt(dx * dx + dy * dy)
-    // 垂直于连线方向的偏移，根据距离比例计算，保证曲线明显可见
-    // 边越多，偏移量占距离的比例越大
+    // Độ lệch vuông góc với hướng nối, tính theo tỉ lệ khoảng cách để đảm bảo nhìn rõ
+    // Càng nhiều cạnh, tỉ lệ độ lệch theo khoảng cách càng lớn
     const pairTotal = d.pairTotal || 1
-    const offsetRatio = 0.25 + pairTotal * 0.05 // 基础25%，每多一条边增加5%
+    const offsetRatio = 0.25 + pairTotal * 0.05 // Giá trị cơ bản là 25%, và nó tăng thêm 5% cho mỗi cạnh bổ sung.
     const baseOffset = Math.max(35, dist * offsetRatio)
     const offsetX = -dy / dist * d.curvature * baseOffset
     const offsetY = dx / dist * d.curvature * baseOffset
@@ -535,14 +535,14 @@ const renderGraph = () => {
     return `M${sx},${sy} Q${cx},${cy} ${tx},${ty}`
   }
   
-  // 计算曲线中点（用于标签定位）
+  // Tính trung điểm của đường cong (để đặt label)
   const getLinkMidpoint = (d) => {
     const sx = d.source.x, sy = d.source.y
     const tx = d.target.x, ty = d.target.y
     
-    // 检测自环
+    // Kiểm tra self-loop
     if (d.isSelfLoop) {
-      // 自环标签位置：节点右侧
+      // Vị trí label self-loop: bên phải node
       return { x: sx + 70, y: sy }
     }
     
@@ -550,7 +550,7 @@ const renderGraph = () => {
       return { x: (sx + tx) / 2, y: (sy + ty) / 2 }
     }
     
-    // 二次贝塞尔曲线的中点 t=0.5
+    // Trung điểm của đường Bezier bậc hai tại t=0.5
     const dx = tx - sx, dy = ty - sy
     const dist = Math.sqrt(dx * dx + dy * dy)
     const pairTotal = d.pairTotal || 1
@@ -561,7 +561,7 @@ const renderGraph = () => {
     const cx = (sx + tx) / 2 + offsetX
     const cy = (sy + ty) / 2 + offsetY
     
-    // 二次贝塞尔曲线公式 B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2, t=0.5
+    // Công thức Bezier bậc hai B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2, với t=0.5
     const midX = 0.25 * sx + 0.5 * cx + 0.25 * tx
     const midY = 0.25 * sy + 0.5 * cy + 0.25 * ty
     
@@ -577,11 +577,11 @@ const renderGraph = () => {
     .style('cursor', 'pointer')
     .on('click', (event, d) => {
       event.stopPropagation()
-      // 重置之前选中边的样式
+      // Reset style cạnh đã chọn trước đó
       linkGroup.selectAll('path').attr('stroke', '#C0C0C0').attr('stroke-width', 1.5)
       linkLabelBg.attr('fill', 'rgba(255,255,255,0.95)')
       linkLabels.attr('fill', '#666')
-      // 高亮当前选中的边
+      // Highlight cạnh đang chọn
       d3.select(event.target).attr('stroke', '#3498db').attr('stroke-width', 3)
       
       selectedItem.value = {
@@ -590,7 +590,7 @@ const renderGraph = () => {
       }
     })
 
-  // Link labels background (白色背景使文字更清晰)
+  // Nền label của cạnh (nền trắng giúp chữ rõ hơn)
   const linkLabelBg = linkGroup.selectAll('rect')
     .data(edges)
     .enter().append('rect')
@@ -605,7 +605,7 @@ const renderGraph = () => {
       linkGroup.selectAll('path').attr('stroke', '#C0C0C0').attr('stroke-width', 1.5)
       linkLabelBg.attr('fill', 'rgba(255,255,255,0.95)')
       linkLabels.attr('fill', '#666')
-      // 高亮对应的边
+      // Highlight cạnh tương ứng
       link.filter(l => l === d).attr('stroke', '#3498db').attr('stroke-width', 3)
       d3.select(event.target).attr('fill', 'rgba(52, 152, 219, 0.1)')
       
@@ -633,7 +633,7 @@ const renderGraph = () => {
       linkGroup.selectAll('path').attr('stroke', '#C0C0C0').attr('stroke-width', 1.5)
       linkLabelBg.attr('fill', 'rgba(255,255,255,0.95)')
       linkLabels.attr('fill', '#666')
-      // 高亮对应的边
+      // Highlight cạnh tương ứng
       link.filter(l => l === d).attr('stroke', '#3498db').attr('stroke-width', 3)
       d3.select(event.target).attr('fill', '#3498db')
       
@@ -643,14 +643,14 @@ const renderGraph = () => {
       }
     })
   
-  // 保存引用供外部控制显隐
+  // Lưu reference để điều khiển hiển thị từ bên ngoài
   linkLabelsRef = linkLabels
   linkLabelBgRef = linkLabelBg
 
-  // Nodes group
+  // Nhóm node
   const nodeGroup = g.append('g').attr('class', 'nodes')
   
-  // Node circles
+  // Hình tròn node
   const node = nodeGroup.selectAll('circle')
     .data(nodes)
     .enter().append('circle')
@@ -661,7 +661,7 @@ const renderGraph = () => {
     .style('cursor', 'pointer')
     .call(d3.drag()
       .on('start', (event, d) => {
-        // 只记录位置，不重启仿真（区分点击和拖拽）
+        // Chỉ ghi nhận vị trí, không restart simulation (phân biệt click và drag)
         d.fx = d.x
         d.fy = d.y
         d._dragStartX = event.x
@@ -669,13 +669,13 @@ const renderGraph = () => {
         d._isDragging = false
       })
       .on('drag', (event, d) => {
-        // 检测是否真正开始拖拽（移动超过阈值）
+        // Kiểm tra có thực sự bắt đầu drag hay chưa (dịch chuyển vượt ngưỡng)
         const dx = event.x - d._dragStartX
         const dy = event.y - d._dragStartY
         const distance = Math.sqrt(dx * dx + dy * dy)
         
         if (!d._isDragging && distance > 3) {
-          // 首次检测到真正拖拽，才重启仿真
+          // Chỉ khi thật sự drag mới restart simulation
           d._isDragging = true
           simulation.alphaTarget(0.3).restart()
         }
@@ -686,7 +686,7 @@ const renderGraph = () => {
         }
       })
       .on('end', (event, d) => {
-        // 只有真正拖拽过才让仿真逐渐停止
+        // Chỉ khi thực sự drag mới cho simulation giảm dần
         if (d._isDragging) {
           simulation.alphaTarget(0)
         }
@@ -697,12 +697,12 @@ const renderGraph = () => {
     )
     .on('click', (event, d) => {
       event.stopPropagation()
-      // 重置所有节点样式
+      // Reset style của tất cả node
       node.attr('stroke', '#fff').attr('stroke-width', 2.5)
       linkGroup.selectAll('path').attr('stroke', '#C0C0C0').attr('stroke-width', 1.5)
-      // 高亮选中节点
+      // Highlight node được chọn
       d3.select(event.target).attr('stroke', '#E91E63').attr('stroke-width', 4)
-      // 高亮与此节点相连的边
+      // Highlight các cạnh nối với node này
       link.filter(l => l.source.id === d.id || l.target.id === d.id)
         .attr('stroke', '#E91E63')
         .attr('stroke-width', 2.5)
@@ -725,7 +725,7 @@ const renderGraph = () => {
       }
     })
 
-  // Node Labels
+  // Nhãn node
   const nodeLabels = nodeGroup.selectAll('text')
     .data(nodes)
     .enter().append('text')
@@ -739,19 +739,19 @@ const renderGraph = () => {
     .style('font-family', 'system-ui, sans-serif')
 
   simulation.on('tick', () => {
-    // 更新曲线路径
+    // Cập nhật đường cong
     link.attr('d', d => getLinkPath(d))
     
-    // 更新边标签位置（无旋转，水平显示更清晰）
+    // Cập nhật vị trí nhãn cạnh (không xoay, hiển thị ngang rõ hơn)
     linkLabels.each(function(d) {
       const mid = getLinkMidpoint(d)
       d3.select(this)
         .attr('x', mid.x)
         .attr('y', mid.y)
-        .attr('transform', '') // 移除旋转，保持水平
+        .attr('transform', '') // Loại bỏ chuyển động xoay, giữ nguyên vị trí nằm ngang.
     })
     
-    // 更新边标签背景
+    // Cập nhật nền nhãn cạnh
     linkLabelBg.each(function(d, i) {
       const mid = getLinkMidpoint(d)
       const textEl = linkLabels.nodes()[i]
@@ -761,7 +761,7 @@ const renderGraph = () => {
         .attr('y', mid.y - bbox.height / 2 - 2)
         .attr('width', bbox.width + 8)
         .attr('height', bbox.height + 4)
-        .attr('transform', '') // 移除旋转
+        .attr('transform', '') // Loại bỏ phép xoay
     })
 
     node
@@ -773,7 +773,7 @@ const renderGraph = () => {
       .attr('y', d => d.y)
   })
   
-  // 点击空白处关闭详情面板
+  // Click vào vùng trống để đóng panel chi tiết
   svg.on('click', () => {
     selectedItem.value = null
     node.attr('stroke', '#fff').attr('stroke-width', 2.5)
@@ -787,7 +787,7 @@ watch(() => props.graphData, () => {
   nextTick(renderGraph)
 }, { deep: true })
 
-// 监听边标签显示开关
+// Theo dõi công tắc hiển thị nhãn cạnh
 watch(showEdgeLabels, (newVal) => {
   if (linkLabelsRef) {
     linkLabelsRef.style('display', newVal ? 'block' : 'none')
@@ -1250,7 +1250,7 @@ input:checked + .slider:before {
   50% { opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 8px rgba(76, 175, 80, 0.6)); }
 }
 
-/* 模拟结束后的提示样式 */
+/* Style thông báo sau khi mô phỏng kết thúc */
 .graph-building-hint.finished-hint {
   background: rgba(0, 0, 0, 0.65);
   border: 1px solid rgba(255, 255, 255, 0.1);

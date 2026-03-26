@@ -1,5 +1,5 @@
 """
-API路由模块
+Mô-đun tuyến API
 """
 
 from flask import Blueprint
