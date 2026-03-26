@@ -1,7 +1,7 @@
 import service, { requestWithRetry } from './index'
 
 /**
- * 创建模拟
+ * Tạo simulation
  * @param {Object} data - { project_id, graph_id?, enable_twitter?, enable_reddit? }
  */
 export const createSimulation = (data) => {
@@ -9,7 +9,7 @@ export const createSimulation = (data) => {
 }
 
 /**
- * 准备模拟环境（异步任务）
+ * Chuẩn bị môi trường simulation (task bất đồng bộ)
  * @param {Object} data - { simulation_id, entity_types?, use_llm_for_profiles?, parallel_profile_count?, force_regenerate? }
  */
 export const prepareSimulation = (data) => {
@@ -17,7 +17,7 @@ export const prepareSimulation = (data) => {
 }
 
 /**
- * 查询准备任务进度
+ * Kiểm tra tiến độ task chuẩn bị
  * @param {Object} data - { task_id?, simulation_id? }
  */
 export const getPrepareStatus = (data) => {
@@ -25,7 +25,7 @@ export const getPrepareStatus = (data) => {
 }
 
 /**
- * 获取模拟状态
+ * Lấy trạng thái simulation
  * @param {string} simulationId
  */
 export const getSimulation = (simulationId) => {
@@ -33,7 +33,7 @@ export const getSimulation = (simulationId) => {
 }
 
 /**
- * 获取模拟的 Agent Profiles
+ * Lấy Agent Profiles của simulation
  * @param {string} simulationId
  * @param {string} platform - 'reddit' | 'twitter'
  */
@@ -42,7 +42,7 @@ export const getSimulationProfiles = (simulationId, platform = 'reddit') => {
 }
 
 /**
- * 实时获取生成中的 Agent Profiles
+ * Lấy Agent Profiles đang được tạo (realtime)
  * @param {string} simulationId
  * @param {string} platform - 'reddit' | 'twitter'
  */
@@ -51,7 +51,7 @@ export const getSimulationProfilesRealtime = (simulationId, platform = 'reddit')
 }
 
 /**
- * 获取模拟配置
+ * Lấy cấu hình simulation
  * @param {string} simulationId
  */
 export const getSimulationConfig = (simulationId) => {
@@ -59,17 +59,17 @@ export const getSimulationConfig = (simulationId) => {
 }
 
 /**
- * 实时获取生成中的模拟配置
+ * Lấy cấu hình simulation đang được tạo (realtime)
  * @param {string} simulationId
- * @returns {Promise} 返回配置信息，包含元数据和配置内容
+ * @returns {Promise} Trả về thông tin cấu hình, bao gồm metadata và nội dung cấu hình
  */
 export const getSimulationConfigRealtime = (simulationId) => {
   return service.get(`/api/simulation/${simulationId}/config/realtime`)
 }
 
 /**
- * 列出所有模拟
- * @param {string} projectId - 可选，按项目ID过滤
+ * Liệt kê tất cả simulation
+ * @param {string} projectId - Tùy chọn, lọc theo project ID
  */
 export const listSimulations = (projectId) => {
   const params = projectId ? { project_id: projectId } : {}
@@ -77,7 +77,7 @@ export const listSimulations = (projectId) => {
 }
 
 /**
- * 启动模拟
+ * Bắt đầu simulation
  * @param {Object} data - { simulation_id, platform?, max_rounds?, enable_graph_memory_update? }
  */
 export const startSimulation = (data) => {
@@ -85,7 +85,7 @@ export const startSimulation = (data) => {
 }
 
 /**
- * 停止模拟
+ * Dừng simulation
  * @param {Object} data - { simulation_id }
  */
 export const stopSimulation = (data) => {
@@ -93,7 +93,7 @@ export const stopSimulation = (data) => {
 }
 
 /**
- * 获取模拟运行实时状态
+ * Lấy trạng thái chạy realtime của simulation
  * @param {string} simulationId
  */
 export const getRunStatus = (simulationId) => {
@@ -101,7 +101,7 @@ export const getRunStatus = (simulationId) => {
 }
 
 /**
- * 获取模拟运行详细状态（包含最近动作）
+ * Lấy trạng thái chạy chi tiết (bao gồm hành động gần nhất)
  * @param {string} simulationId
  */
 export const getRunStatusDetail = (simulationId) => {
@@ -109,11 +109,11 @@ export const getRunStatusDetail = (simulationId) => {
 }
 
 /**
- * 获取模拟中的帖子
+ * Lấy danh sách bài post trong simulation
  * @param {string} simulationId
  * @param {string} platform - 'reddit' | 'twitter'
- * @param {number} limit - 返回数量
- * @param {number} offset - 偏移量
+ * @param {number} limit - Số lượng trả về
+ * @param {number} offset - Độ lệch
  */
 export const getSimulationPosts = (simulationId, platform = 'reddit', limit = 50, offset = 0) => {
   return service.get(`/api/simulation/${simulationId}/posts`, {
@@ -122,10 +122,10 @@ export const getSimulationPosts = (simulationId, platform = 'reddit', limit = 50
 }
 
 /**
- * 获取模拟时间线（按轮次汇总）
+ * Lấy timeline simulation (tổng hợp theo từng round)
  * @param {string} simulationId
- * @param {number} startRound - 起始轮次
- * @param {number} endRound - 结束轮次
+ * @param {number} startRound - Round bắt đầu
+ * @param {number} endRound - Round kết thúc
  */
 export const getSimulationTimeline = (simulationId, startRound = 0, endRound = null) => {
   const params = { start_round: startRound }
@@ -136,7 +136,7 @@ export const getSimulationTimeline = (simulationId, startRound = 0, endRound = n
 }
 
 /**
- * 获取Agent统计信息
+ * Lấy thống kê Agent
  * @param {string} simulationId
  */
 export const getAgentStats = (simulationId) => {
@@ -144,7 +144,7 @@ export const getAgentStats = (simulationId) => {
 }
 
 /**
- * 获取模拟动作历史
+ * Lấy lịch sử hành động simulation
  * @param {string} simulationId
  * @param {Object} params - { limit, offset, platform, agent_id, round_num }
  */
@@ -153,7 +153,7 @@ export const getSimulationActions = (simulationId, params = {}) => {
 }
 
 /**
- * 关闭模拟环境（优雅退出）
+ * Đóng môi trường simulation (thoát an toàn)
  * @param {Object} data - { simulation_id, timeout? }
  */
 export const closeSimulationEnv = (data) => {
@@ -161,7 +161,7 @@ export const closeSimulationEnv = (data) => {
 }
 
 /**
- * 获取模拟环境状态
+ * Lấy trạng thái môi trường simulation
  * @param {Object} data - { simulation_id }
  */
 export const getEnvStatus = (data) => {
@@ -169,7 +169,7 @@ export const getEnvStatus = (data) => {
 }
 
 /**
- * 批量采访 Agent
+ * Phỏng vấn hàng loạt Agent
  * @param {Object} data - { simulation_id, interviews: [{ agent_id, prompt }] }
  */
 export const interviewAgents = (data) => {
@@ -177,11 +177,10 @@ export const interviewAgents = (data) => {
 }
 
 /**
- * 获取历史模拟列表（带项目详情）
- * 用于首页历史项目展示
- * @param {number} limit - 返回数量限制
+ * Lấy lịch sử simulation (kèm thông tin project)
+ * Dùng cho hiển thị trang chủ
+ * @param {number} limit - Giới hạn số lượng trả về
  */
 export const getSimulationHistory = (limit = 20) => {
   return service.get('/api/simulation/history', { params: { limit } })
 }
-

@@ -1,8 +1,8 @@
 import service, { requestWithRetry } from './index'
 
 /**
- * 生成本体（上传文档和模拟需求）
- * @param {Object} data - 包含files, simulation_requirement, project_name等
+ * Tạo ontology (upload file + yêu cầu mô phỏng)
+ * @param {Object} data - Bao gồm files, simulation_requirement, project_name...
  * @returns {Promise}
  */
 export function generateOntology(formData) {
@@ -19,8 +19,8 @@ export function generateOntology(formData) {
 }
 
 /**
- * 构建图谱
- * @param {Object} data - 包含project_id, graph_name等
+ * Xây dựng graph
+ * @param {Object} data - Bao gồm project_id, graph_name...
  * @returns {Promise}
  */
 export function buildGraph(data) {
@@ -34,8 +34,8 @@ export function buildGraph(data) {
 }
 
 /**
- * 查询任务状态
- * @param {String} taskId - 任务ID
+ * Lấy trạng thái task
+ * @param {String} taskId - ID của task
  * @returns {Promise}
  */
 export function getTaskStatus(taskId) {
@@ -46,8 +46,8 @@ export function getTaskStatus(taskId) {
 }
 
 /**
- * 获取图谱数据
- * @param {String} graphId - 图谱ID
+ * Lấy dữ liệu graph
+ * @param {String} graphId - ID của graph
  * @returns {Promise}
  */
 export function getGraphData(graphId) {
@@ -58,8 +58,8 @@ export function getGraphData(graphId) {
 }
 
 /**
- * 获取项目信息
- * @param {String} projectId - 项目ID
+ * Lấy thông tin project
+ * @param {String} projectId - ID của project
  * @returns {Promise}
  */
 export function getProject(projectId) {
