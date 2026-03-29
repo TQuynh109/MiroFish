@@ -884,6 +884,7 @@ class ReportAgent:
         self, 
         graph_id: str,
         simulation_id: str,
+        project_id: str,
         simulation_requirement: str,
         llm_client: Optional[LLMClient] = None,
         zep_tools: Optional[ZepToolsService] = None
@@ -900,10 +901,27 @@ class ReportAgent:
         """
         self.graph_id = graph_id
         self.simulation_id = simulation_id
+        self.project_id = project_id
         self.simulation_requirement = simulation_requirement
         
-        self.llm = llm_client or LLMClient()
-        self.zep_tools = zep_tools or ZepToolsService()
+        self.llm = llm_client or LLMClient(
+            component="report_agent",
+            metadata={
+                "simulation_id": simulation_id,
+                "project_id": project_id,
+                "phase": "report_generation",
+            },
+        )
+        self.zep_tools = zep_tools or ZepToolsService(
+            llm_client=LLMClient(
+                component="zep_tools",
+                metadata={
+                    "simulation_id": simulation_id,
+                    "project_id": project_id,
+                    "phase": "zep_tools",
+                },
+            )
+        )
         
         # Định nghĩa các công cụ
         self.tools = self._define_tools()
@@ -913,7 +931,9 @@ class ReportAgent:
         # Trình ghi log console (được khởi tạo trong generate_report)
         self.console_logger: Optional[ReportConsoleLogger] = None
         
-        logger.info(f"ReportAgent initialized: graph_id={graph_id}, simulation_id={simulation_id}")
+        logger.info(
+            f"ReportAgent initialized: graph_id={graph_id}, simulation_id={simulation_id}, project_id={project_id}"
+        )
     
     def _define_tools(self) -> Dict[str, Dict[str, Any]]:
         """Định nghĩa các công cụ khả dụng"""
@@ -1303,7 +1323,7 @@ class ReportAgent:
             response = self.llm.chat(
                 messages=messages,
                 temperature=0.5,
-                max_tokens=4096
+                # max_tokens=4096
             )
 
             # Kiểm tra xem phản hồi có rỗng/chưa có (None) không (do API lỗi hoặc content null)
@@ -1506,7 +1526,7 @@ class ReportAgent:
         response = self.llm.chat(
             messages=messages,
             temperature=0.5,
-            max_tokens=4096
+            # max_tokens=4096
         )
 
         # Kiểm tra nếu ép buộc kết thúc mà LLM vẫn nhả None
@@ -1561,6 +1581,19 @@ class ReportAgent:
         if not report_id:
             report_id = f"report_{uuid.uuid4().hex[:12]}"
         start_time = datetime.now()
+
+        # Đồng bộ metadata chi phí LLM theo report hiện tại
+        # Mục tiêu: mọi call trong giai đoạn generate report đều mang report_id.
+        self.llm.default_metadata["report_id"] = report_id
+        self.llm.default_metadata["project_id"] = self.project_id
+        self.llm.default_metadata["simulation_id"] = self.simulation_id
+        self.llm.default_metadata["phase"] = "report_generation"
+
+        zep_llm = self.zep_tools.llm
+        zep_llm.default_metadata["report_id"] = report_id
+        zep_llm.default_metadata["project_id"] = self.project_id
+        zep_llm.default_metadata["simulation_id"] = self.simulation_id
+        zep_llm.default_metadata["phase"] = "zep_tools"
         
         report = Report(
             report_id=report_id,

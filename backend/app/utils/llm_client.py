@@ -9,6 +9,7 @@ from typing import Optional, Dict, Any, List
 from openai import OpenAI
 
 from ..config import Config
+from .llm_cost import create_tracked_chat_completion
 
 
 class LLMClient:
@@ -18,11 +19,15 @@ class LLMClient:
         self,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
-        model: Optional[str] = None
+        model: Optional[str] = None,
+        component: str = "llm_client",
+        metadata: Optional[Dict[str, Any]] = None,
     ):
         self.api_key = api_key or Config.LLM_API_KEY
         self.base_url = base_url or Config.LLM_BASE_URL
         self.model = model or Config.LLM_MODEL_NAME
+        self.component = component
+        self.default_metadata = metadata or {}
         
         if not self.api_key:
             raise ValueError("LLM_API_KEY is not configured")
@@ -37,7 +42,8 @@ class LLMClient:
         messages: List[Dict[str, str]],
         temperature: float = 0.7,
         max_tokens: int = 4096,
-        response_format: Optional[Dict] = None
+        response_format: Optional[Dict] = None,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Gửi yêu cầu chat
@@ -60,8 +66,19 @@ class LLMClient:
         
         if response_format:
             kwargs["response_format"] = response_format
+
+        call_metadata = dict(self.default_metadata)
+        if metadata:
+            call_metadata.update(metadata)
+        call_metadata.setdefault("component", self.component)
         
-        response = self.client.chat.completions.create(**kwargs)
+        response = create_tracked_chat_completion(
+            client=self.client,
+            model=self.model,
+            messages=messages,
+            metadata=call_metadata,
+            **{k: v for k, v in kwargs.items() if k not in {"model", "messages"}},
+        )
         content = response.choices[0].message.content
         # Một số model (vd MiniMax M2.5) chèn nội dung <think> vào content, cần loại bỏ
         content = re.sub(r'<think>[\s\S]*?</think>', '', content).strip()
@@ -71,7 +88,8 @@ class LLMClient:
         self,
         messages: List[Dict[str, str]],
         temperature: float = 0.3,
-        max_tokens: int = 4096
+        max_tokens: int = 4096,
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Gửi yêu cầu chat và trả về JSON
@@ -88,7 +106,8 @@ class LLMClient:
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
+            metadata=metadata,
         )
         # Làm sạch markdown code fence
         cleaned_response = response.strip()

@@ -14,6 +14,7 @@ from ..services.ontology_generator import OntologyGenerator
 from ..services.graph_builder import GraphBuilderService
 from ..services.text_processor import TextProcessor
 from ..utils.file_parser import FileParser
+from ..utils.llm_client import LLMClient
 from ..utils.logger import get_logger
 from ..models.task import TaskManager, TaskStatus
 from ..models.project import ProjectManager, ProjectStatus
@@ -29,8 +30,6 @@ def allowed_file(filename: str) -> bool:
     ext = os.path.splitext(filename)[1].lower().lstrip('.')
     return ext in Config.ALLOWED_EXTENSIONS
 
-
-# ============== 项目管理接口 ==============
 
 @graph_bp.route('/project/<project_id>', methods=['GET'])
 def get_project(project_id: str):
@@ -213,7 +212,15 @@ def generate_ontology():
         
         # Generate ontology definition using LLM
         logger.info("Calling LLM to generate ontology definition...")
-        generator = OntologyGenerator()
+        generator = OntologyGenerator(
+            llm_client=LLMClient(
+                component="ontology_generator",
+                metadata={
+                    "project_id": project.project_id,
+                    "phase": "ontology_generation",
+                },
+            )
+        )
         ontology = generator.generate(
             document_texts=document_texts,
             simulation_requirement=simulation_requirement,

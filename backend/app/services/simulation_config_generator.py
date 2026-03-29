@@ -20,6 +20,7 @@ from openai import OpenAI
 
 from ..config import Config
 from ..utils.logger import get_logger
+from ..utils.llm_cost import create_tracked_chat_completion
 from .zep_entity_reader import EntityNode, ZepEntityReader
 
 logger = get_logger('mirofish.simulation_config')
@@ -238,6 +239,7 @@ class SimulationConfigGenerator:
             api_key=self.api_key,
             base_url=self.base_url
         )
+        self._runtime_metadata: Dict[str, Any] = {}
     
     def generate_config(
         self,
@@ -269,6 +271,12 @@ class SimulationConfigGenerator:
             SimulationParameters: Bộ tổng cấu hình thông số đầy đủ
         """
         logger.info(f"Start generating simulation configuration: simulation_id={simulation_id}, entity_count={len(entities)}")
+        self._runtime_metadata = {
+            "simulation_id": simulation_id,
+            "project_id": project_id,
+            "component": "simulation_config_generator",
+            "phase": "prepare_simulation_config",
+        }
         
         # Tính toán tổng số bước
         num_batches = math.ceil(len(entities) / self.AGENTS_PER_BATCH)
@@ -438,15 +446,16 @@ class SimulationConfigGenerator:
         
         for attempt in range(max_attempts):
             try:
-                response = self.client.chat.completions.create(
+                response = create_tracked_chat_completion(
+                    client=self.client,
                     model=self.model_name,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": prompt}
                     ],
                     response_format={"type": "json_object"},
-                    temperature=0.7 - (attempt * 0.1)  # Giảm temperature cho mỗi lần retry
-                    # Không đặt max_tokens, cho AI sáng tạo tự do tối đa
+                    temperature=0.7 - (attempt * 0.1),  # Giảm temperature cho mỗi lần retry
+                    metadata=self._runtime_metadata,
                 )
                 
                 content = response.choices[0].message.content

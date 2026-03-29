@@ -134,6 +134,7 @@ def generate_report():
                 agent = ReportAgent(
                     graph_id=graph_id,
                     simulation_id=simulation_id,
+                    project_id=state.project_id,
                     simulation_requirement=simulation_requirement
                 )
                 
@@ -540,6 +541,7 @@ def chat_with_report_agent():
         agent = ReportAgent(
             graph_id=graph_id,
             simulation_id=simulation_id,
+            project_id=state.project_id,
             simulation_requirement=simulation_requirement
         )
         

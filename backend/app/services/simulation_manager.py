@@ -342,7 +342,9 @@ class SimulationManager:
                 graph_id=state.graph_id,  # Để tìm kiếm Zep Search Index
                 parallel_count=parallel_profile_count,  # Số dòng luồng Async
                 realtime_output_path=realtime_output_path,  # Lưu log thời gian thực
-                output_platform=realtime_platform  # Đuôi file xuất
+                output_platform=realtime_platform,  # Đuôi file xuất
+                simulation_id=simulation_id,
+                project_id=state.project_id,
             )
             
             state.profiles_count = len(profiles)

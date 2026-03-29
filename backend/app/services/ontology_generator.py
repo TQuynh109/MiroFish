@@ -196,8 +196,7 @@ class OntologyGenerator:
         # Gửi request đến LLM
         result = self.llm_client.chat_json(
             messages=messages,
-            temperature=0.3,
-            max_tokens=4096
+            temperature=0.3,        
         )
         
         # Kiểm tra tính hợp lệ và xử lý tinh chỉnh kết quả đầu ra
@@ -206,7 +205,7 @@ class OntologyGenerator:
         return result
     
     # Định mức giới hạn độ dài ký tự tối đa của đoạn văn bản có thể gửi cho LLM (5 vạn chữ)
-    MAX_TEXT_LENGTH_FOR_LLM = 50000
+    MAX_TEXT_LENGTH_FOR_LLM = 80000
     
     def _build_user_message(
         self,

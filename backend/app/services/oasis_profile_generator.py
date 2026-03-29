@@ -20,6 +20,7 @@ from zep_cloud.client import Zep
 
 from ..config import Config
 from ..utils.logger import get_logger
+from ..utils.llm_cost import create_tracked_chat_completion
 from .zep_entity_reader import EntityNode, ZepEntityReader
 
 logger = get_logger('mirofish.oasis_profile')
@@ -196,6 +197,10 @@ class OasisProfileGenerator:
             api_key=self.api_key,
             base_url=self.base_url
         )
+        self._runtime_metadata: Dict[str, Any] = {
+            "component": "oasis_profile_generator",
+            "phase": "generate_profiles",
+        }
         
         # Kết nối lên trên ZEP Database Search Context
         self.zep_api_key = zep_api_key or Config.ZEP_API_KEY
@@ -525,15 +530,16 @@ class OasisProfileGenerator:
         
         for attempt in range(max_attempts):
             try:
-                response = self.client.chat.completions.create(
+                response = create_tracked_chat_completion(
+                    client=self.client,
                     model=self.model_name,
                     messages=[
                         {"role": "system", "content": self._get_system_prompt(is_individual)},
                         {"role": "user", "content": prompt}
                     ],
                     response_format={"type": "json_object"},
-                    temperature=0.7 - (attempt * 0.1)  # Giảm tính sáng tạo ngẫu nhiên đi một chút mỗi khi fail để tăng khả năng thành công ở vòng tiếp theo
-                    # Thả Rông Max tokens
+                    temperature=0.7 - (attempt * 0.1),  # Giảm tính sáng tạo ngẫu nhiên đi một chút mỗi khi fail để tăng khả năng thành công ở vòng tiếp theo
+                    metadata=self._runtime_metadata,
                 )
                 
                 content = response.choices[0].message.content
@@ -854,7 +860,9 @@ Quan trọng:
         graph_id: Optional[str] = None,
         parallel_count: int = 5,
         realtime_output_path: Optional[str] = None,
-        output_platform: str = "reddit"
+        output_platform: str = "reddit",
+        simulation_id: Optional[str] = None,
+        project_id: Optional[str] = None,
     ) -> List[OasisAgentProfile]:
         """
         Khởi tạo hàng loạt các Agent Profile từ các thực thể (Hỗ trợ Gen đa luồng song song)
@@ -877,6 +885,14 @@ Quan trọng:
         # Lưu Graph ID lại cho Zep xử lý search
         if graph_id:
             self.graph_id = graph_id
+
+        self._runtime_metadata = {
+            "component": "oasis_profile_generator",
+            "phase": "generate_profiles",
+            "simulation_id": simulation_id,
+            "project_id": project_id,
+            "platform": output_platform,
+        }
         
         total = len(entities)
         profiles = [None] * total  # Cấp trước 1 mảng để giữ đúng thứ tự Index

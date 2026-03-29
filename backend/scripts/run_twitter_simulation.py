@@ -48,6 +48,7 @@ else:
 
 
 import re
+from llm_cost_patch import install_openai_cost_patch
 
 
 class UnicodeFormatter(logging.Formatter):
@@ -743,6 +744,15 @@ async def main():
         config_path=args.config,
         wait_for_commands=not args.no_wait
     )
+
+    install_openai_cost_patch(
+        simulation_id=runner.config.get("simulation_id"),
+        project_id=runner.config.get("project_id"),
+        platform="twitter",
+        component="scripts.run_twitter_simulation",
+        phase="simulation_run",
+    )
+
     await runner.run(max_rounds=args.max_rounds)
 
 

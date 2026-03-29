@@ -156,6 +156,7 @@ def init_logging_for_simulation(simulation_dir: str):
 
 
 from action_logger import SimulationLogManager, PlatformActionLogger
+from llm_cost_patch import install_openai_cost_patch
 
 try:
     from camel.models import ModelFactory
@@ -1533,6 +1534,14 @@ async def main():
     config = load_config(args.config)
     simulation_dir = os.path.dirname(args.config) or "."
     wait_for_commands = not args.no_wait
+
+    install_openai_cost_patch(
+        simulation_id=config.get("simulation_id"),
+        project_id=config.get("project_id"),
+        platform="parallel",
+        component="scripts.run_parallel_simulation",
+        phase="simulation_run",
+    )
     
     # Khởi tạo cấu hình log (tắt log OASIS, dọn file cũ)
     init_logging_for_simulation(simulation_dir)
