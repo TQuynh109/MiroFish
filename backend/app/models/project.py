@@ -183,7 +183,7 @@ class ProjectManager:
             project_id: Project ID
             
         Returns:
-            Project对象，如果不存在返回None
+            Project object; if it does not exist, return None.
         """
         meta_path = cls._get_project_meta_path(project_id)
         

@@ -21,8 +21,9 @@ logger = get_logger('mirofish.api.simulation')
 
 # Tiền tố tối ưu cho Interview prompt
 # Thêm tiền tố này để tránh Agent gọi công cụ, trả lời trực tiếp bằng văn bản
-INTERVIEW_PROMPT_PREFIX = "Based on your persona, all past memories and actions, reply directly in plain text without calling any tools:"
+# INTERVIEW_PROMPT_PREFIX = "Based on your persona, all past memories and actions, reply directly in plain text without calling any tools:"
 
+INTERVIEW_PROMPT_PREFIX = "Dựa trên nhân vật, tất cả ký ức và hành động trong quá khứ của bạn, hãy trả lời trực tiếp bằng văn bản thuần túy mà không gọi bất kỳ công cụ nào:"
 
 def optimize_interview_prompt(prompt: str) -> str:
     """
@@ -1397,6 +1398,7 @@ def generate_profiles():
         entity_types = data.get('entity_types')
         use_llm = data.get('use_llm', True)
         platform = data.get('platform', 'reddit')
+        project_id = data.get('project_id')
         
         reader = ZepEntityReader()
         filtered = reader.filter_defined_entities(
@@ -1414,7 +1416,8 @@ def generate_profiles():
         generator = OasisProfileGenerator()
         profiles = generator.generate_profiles_from_entities(
             entities=filtered.entities,
-            use_llm=use_llm
+            use_llm=use_llm,
+            project_id=project_id,
         )
         
         if platform == "reddit":

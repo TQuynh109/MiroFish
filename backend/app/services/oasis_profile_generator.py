@@ -20,6 +20,7 @@ from zep_cloud.client import Zep
 
 from ..config import Config
 from ..utils.logger import get_logger
+from ..utils.llm_cost import create_tracked_chat_completion
 from .zep_entity_reader import EntityNode, ZepEntityReader
 
 logger = get_logger('mirofish.oasis_profile')
@@ -196,6 +197,10 @@ class OasisProfileGenerator:
             api_key=self.api_key,
             base_url=self.base_url
         )
+        self._runtime_metadata: Dict[str, Any] = {
+            "component": "oasis_profile_generator",
+            "phase": "generate_profiles",
+        }
         
         # Kết nối lên trên ZEP Database Search Context
         self.zep_api_key = zep_api_key or Config.ZEP_API_KEY
@@ -525,15 +530,16 @@ class OasisProfileGenerator:
         
         for attempt in range(max_attempts):
             try:
-                response = self.client.chat.completions.create(
+                response = create_tracked_chat_completion(
+                    client=self.client,
                     model=self.model_name,
                     messages=[
                         {"role": "system", "content": self._get_system_prompt(is_individual)},
                         {"role": "user", "content": prompt}
                     ],
                     response_format={"type": "json_object"},
-                    temperature=0.7 - (attempt * 0.1)  # Giảm tính sáng tạo ngẫu nhiên đi một chút mỗi khi fail để tăng khả năng thành công ở vòng tiếp theo
-                    # Thả Rông Max tokens
+                    temperature=0.7 - (attempt * 0.1),  # Giảm tính sáng tạo ngẫu nhiên đi một chút mỗi khi fail để tăng khả năng thành công ở vòng tiếp theo
+                    metadata=self._runtime_metadata,
                 )
                 
                 content = response.choices[0].message.content
@@ -669,7 +675,10 @@ class OasisProfileGenerator:
     
     def _get_system_prompt(self, is_individual: bool) -> str:
         """Lấy prompt cho hệ thống"""
-        base_prompt = "Bạn là một chuyên gia tạo chân dung người dùng mạng xã hội. Tạo một nhân vật chi tiết, chân thực để mô phỏng dư luận, phục hồi bối cảnh thế giới thực ở mức tối đa. Bắt buộc phải trả về định dạng JSON hợp lệ, tất cả các chuỗi không được chứa ký tự xuống dòng chưa được escape. Sử dụng tiếng Việt."
+
+        # base_prompt = "You are an expert in generating social media user personas. Generate detailed and realistic personas for public opinion simulation to recreate existing real-world conditions to the greatest extent possible. You must return a valid JSON format; all string values must not contain unescaped line breaks. Use Chinese."
+
+        base_prompt = "Bạn là chuyên gia tạo hồ sơ người dùng mạng xã hội. Hãy tạo các nhân vật chi tiết và chân thực phục vụ cho việc mô phỏng dư luận, nhằm tái hiện tối đa các tình huống thực tế hiện có. Phải trả về định dạng JSON hợp lệ; tất cả các giá trị chuỗi không được chứa ký tự xuống dòng chưa được xử lý (unescaped). Sử dụng tiếng Việt."
         return base_prompt
     
     def _build_individual_persona_prompt(
@@ -685,7 +694,42 @@ class OasisProfileGenerator:
         attrs_str = json.dumps(entity_attributes, ensure_ascii=False) if entity_attributes else "Không có"
         context_str = context[:3000] if context else "Không có ngữ cảnh bổ sung"
         
-        return f"""Tạo một thiết lập người dùng mạng xã hội chi tiết cho thực thể, phản ánh tối đa tình hình thực tế hiện có.
+#         return f"""Generate a detailed social media user persona for the entity, recreating existing real-world conditions to the greatest extent possible.
+ 
+# Entity Name: {entity_name}
+# Entity Type: {entity_type}
+# Entity Summary: {entity_summary}
+# Entity Attributes: {attrs_str}
+ 
+# Context Information:
+# {context_str}
+ 
+# Please generate a JSON containing the following fields:
+ 
+# 1. bio: Social media biography, 200 characters.
+# 2. persona: Detailed persona description (2000 words of plain text), which must include:
+#    - Basic information (age, occupation, educational background, location)
+#    - Background (significant experiences, connection to the event, social relationships)
+#    - Personality traits (MBTI type, core personality, emotional expression style)
+#    - Social media behavior (posting frequency, content preferences, interaction style, linguistic characteristics)
+#    - Stance and views (attitude toward the topic, content that might provoke or move them)
+#    - Unique features (catchphrases, special experiences, personal hobbies)
+#    - Personal memory (a vital part of the persona, describing the individual's connection to the event and their existing actions/reactions)
+# 3. age: Age as a number (must be an integer)
+# 4. gender: Gender, must be in English: "male" or "female"
+# 5. mbti: MBTI type (e.g., INTJ, ENFP, etc.)
+# 6. country: Country (use Chinese, e.g., "中国")
+# 7. profession: Occupation
+# 8. interested_topics: An array of interested topics
+ 
+# IMPORTANT:
+# - All field values must be strings or numbers; do not use line breaks.
+# - The 'persona' must be a coherent block of text description.
+# - Use Chinese (except for the 'gender' field, which must be English male/female).
+# - Content must remain consistent with the entity information.
+# - 'age' must be a valid integer; 'gender' must be "male" or "female"."""
+
+        return f"""Tạo hồ sơ người dùng mạng xã hội chi tiết cho thực thể, tái hiện tối đa các tình huống thực tế hiện có.
 
 Tên thực thể: {entity_name}
 Loại thực thể: {entity_type}
@@ -695,30 +739,30 @@ Thuộc tính thực thể: {attrs_str}
 Thông tin ngữ cảnh:
 {context_str}
 
-Vui lòng tạo JSON, bao gồm các trường sau:
-
-1. bio: Giới thiệu mạng xã hội, 200 chữ
-2. persona: Mô tả chi tiết nhân vật (văn bản thuần 2000 chữ), cần bao gồm:
-   - Thông tin cơ bản (Tuổi, Nghề nghiệp, Nền tảng học vấn, Vị trí hiện tại)
-   - Bối cảnh nhân vật (Kinh nghiệm quan trọng, Mối liên hệ với sự kiện, Quan hệ xã hội)
-   - Đặc điểm tính cách (Loại MBTI, Tính cách cốt lõi, Cách thể hiện cảm xúc)
-   - Hành vi Mạng xã hội (Tần suất đăng bài, Sở thích nội dung, Phong cách tương tác, Đặc điểm ngôn ngữ)
-   - Quan điểm lập trường (Thái độ đối với chủ đề, Nội dung có thể gây phẫn nộ/cảm động)
-   - Đặc điểm độc đáo (Câu cửa miệng, Kinh nghiệm đặc biệt, Sở thích cá nhân)
-   - Ký ức cá nhân (Phần quan trọng của nhân vật, cần giới thiệu rõ mối liên hệ giữa cá nhân này với sự kiện, cũng như các hành động và phản ứng của người này trong sự kiện)
-3. age: Tuổi (bắt buộc phải là số nguyên)
-4. gender: Giới tính, bắt buộc bằng tiếng Anh: "male" hoặc "female"
-5. mbti: Loại MBTI (ví dụ: INTJ, ENFP, v.v.)
-6. country: Quốc gia (sử dụng tiếng Việt, ví dụ "Việt Nam")
+Vui lòng tạo JSON bao gồm các trường sau:
+ 
+1. bio: Tiểu sử mạng xã hội, 200 ký tự.
+2. persona: Mô tả nhân vật chi tiết (văn bản thuần túy khoảng 2000 từ), cần bao gồm:
+   - Thông tin cơ bản (tuổi, nghề nghiệp, trình độ học vấn, nơi ở)
+   - Nền tảng nhân vật (trải nghiệm quan trọng, mối liên hệ với sự kiện, quan hệ xã hội)
+   - Đặc điểm tính cách (loại MBTI, tính cách cốt lõi, cách biểu đạt cảm xúc)
+   - Hành vi mạng xã hội (tần suất đăng bài, sở thích nội dung, phong cách tương tác, đặc điểm ngôn ngữ)
+   - Lập trường quan điểm (thái độ đối với chủ đề, nội dung dễ gây kích động hoặc gây xúc động)
+   - Đặc điểm độc đáo (câu cửa miệng, trải nghiệm đặc biệt, sở thích cá nhân)
+   - Ký ức cá nhân (phần quan trọng của nhân vật, giới thiệu mối liên hệ của cá nhân này với sự kiện, cũng như các hành động và phản ứng đã có của họ trong sự kiện)
+3. age: Con số tuổi (phải là số nguyên)
+4. gender: Giới tính, phải là tiếng Anh: "male" hoặc "female"
+5. mbti: Loại MBTI (như INTJ, ENFP, v.v.)
+6. country: Quốc gia (sử dụng tiếng Trung, ví dụ: "中国")
 7. profession: Nghề nghiệp
 8. interested_topics: Mảng các chủ đề quan tâm
-
-Quan trọng:
-- Tất cả giá trị các trường phải là chuỗi hoặc số, không sử dụng ký tự xuống dòng (\n)
-- persona phải là một đoạn mô tả văn bản liên tục, không ngắt quãng
-- Sử dụng tiếng Việt (ngoại trừ trường gender bắt buộc dùng tiếng Anh male/female)
-- Nội dung phải nhất quán với thông tin của thực thể
-- age phải là số nguyên hợp lệ, gender phải là "male" hoặc "female"
+ 
+QUAN TRỌNG:
+- Tất cả giá trị các trường phải là chuỗi hoặc số, không sử dụng ký tự xuống dòng.
+- 'persona' phải là một đoạn mô tả văn bản mạch lạc.
+- Sử dụng tiếng Trung (ngoại trừ trường 'gender' phải dùng tiếng Anh male/female).
+- Nội dung phải nhất quán với thông tin thực thể.
+- 'age' phải là số nguyên hợp lệ, 'gender' phải là "male" hoặc "female".
 """
 
     def _build_group_persona_prompt(
@@ -731,10 +775,46 @@ Quan trọng:
     ) -> str:
         """Tạo prompt chi tiết cho tài khoản đại diện tổ chức/nhóm"""
         
-        attrs_str = json.dumps(entity_attributes, ensure_ascii=False) if entity_attributes else "Không có"
-        context_str = context[:3000] if context else "Không có ngữ cảnh bổ sung"
+        attrs_str = json.dumps(entity_attributes, ensure_ascii=False) if entity_attributes else "None"
+        context_str = context[:3000] if context else "No additional context"
+
+#         return f"""Generate a detailed social media account persona for an organization/group entity, recreating existing real-world conditions to the greatest extent possible.
+ 
+# Entity Name: {entity_name}
+# Entity Type: {entity_type}
+# Entity Summary: {entity_summary}
+# Entity Attributes: {attrs_str}
+ 
+# Context Information:
+# {context_str}
+ 
+# Please generate a JSON containing the following fields:
+ 
+# 1. bio: Official account biography, 200 characters, professional and appropriate.
+# 2. persona: Detailed account setting description (2000 words of plain text), which must include:
+#    - Basic information (formal name, nature of the organization, establishment background, primary functions)
+#    - Account positioning (account type, target audience, core functions)
+#    - Communication style (linguistic characteristics, common expressions, taboo topics)
+#    - Content characteristics (content types, posting frequency, active time periods)
+#    - Stance and attitude (official stance on core topics, handling of controversies)
+#    - Special notes (persona of the group represented, operational habits)
+#    - Organizational memory (a vital part of the persona, describing the organization's connection to the event and its existing actions/reactions)
+# 3. age: Fixed at 30 (virtual age for an organizational account)
+# 4. gender: Fixed as "other" (representing non-individual accounts)
+# 5. mbti: MBTI type used to describe the account's style (e.g., ISTJ for rigorous/conservative)
+# 6. country: Country (use Chinese, e.g., "中国")
+# 7. profession: Description of organizational functions
+# 8. interested_topics: An array of focused fields/areas of interest
+ 
+# IMPORTANT:
+# - All field values must be strings or numbers; null values are not allowed.
+# - 'persona' must be a coherent block of text description; do not use line breaks.
+# - Use Chinese (except for the 'gender' field, which must be the English string "other").
+# - 'age' must be the integer 30; 'gender' must be the string "other".
+# - The account's tone and discourse must strictly align with its institutional identity and positioning.
+# """
         
-        return f"""Tạo một thiết lập tài khoản mạng xã hội chi tiết cho tổ chức/nhóm, phản ánh tối đa tình hình thực tế.
+        return f"""Tạo thiết lập tài khoản mạng xã hội chi tiết cho thực thể tổ chức/nhóm, tái hiện tối đa các tình huống thực tế hiện có.
 
 Tên thực thể: {entity_name}
 Loại thực thể: {entity_type}
@@ -744,30 +824,31 @@ Thuộc tính thực thể: {attrs_str}
 Thông tin ngữ cảnh:
 {context_str}
 
-Vui lòng tạo JSON, bao gồm các trường sau:
-
-1. bio: Giới thiệu tài khoản chính thức, 200 chữ, chuyên nghiệp và đúng mực
-2. persona: Mô tả chi tiết thiết lập tài khoản (văn bản thuần 2000 chữ), cần bao gồm:
-   - Thông tin cơ bản của tổ chức (Tên chính thức, Tính chất tổ chức, Bối cảnh thành lập, Chức năng chính)
-   - Định hướng tài khoản (Loại tài khoản, Đối tượng mục tiêu, Chức năng cốt lõi)
-   - Phong cách phát ngôn (Đặc điểm ngôn ngữ, Các biểu đạt thường dùng, Chủ đề cấm kỵ)
-   - Đặc điểm nội dung đăng tải (Loại nội dung, Tần suất đăng, Khung giờ hoạt động)
-   - Lập trường thái độ (Lập trường chính thức đối với chủ đề cốt lõi, Cách xử lý khi đối mặt với tranh cãi)
-   - Lưu ý đặc biệt (Chân dung nhóm đại diện, Thói quen vận hành)
-   - Ký ức tổ chức (Phần quan trọng của thiết lập tổ chức, cần giới thiệu rõ mối liên hệ giữa tổ chức này với sự kiện, cũng như các hành động và phản ứng của tổ chức trong sự kiện)
-3. age: Điền cố định 30 (Tuổi ảo của tài khoản tổ chức)
-4. gender: Điền cố định "other" (Tài khoản tổ chức sử dụng other để biểu thị tính phi cá nhân)
-5. mbti: Loại MBTI, dùng để mô tả phong cách tài khoản, ví dụ ISTJ đại diện cho sự nghiêm ngặt, bảo thủ
-6. country: Quốc gia (sử dụng tiếng Việt, ví dụ "Việt Nam")
-7. profession: Mô tả chức năng tổ chức
+Vui lòng tạo JSON bao gồm các trường sau:
+ 
+1. bio: Tiểu sử tài khoản chính thức, 200 ký tự, chuyên nghiệp và chuẩn mực.
+2. persona: Mô tả chi tiết thiết lập tài khoản (văn bản thuần túy khoảng 2000 từ), cần bao gồm:
+   - Thông tin cơ bản về tổ chức (tên chính thức, tính chất tổ chức, bối cảnh thành lập, chức năng chính)
+   - Định vị tài khoản (loại tài khoản, đối tượng mục tiêu, chức năng cốt lõi)
+   - Phong cách phát ngôn (đặc điểm ngôn ngữ, biểu đạt thường dùng, các chủ đề cấm kỵ)
+   - Đặc điểm nội dung đăng tải (loại nội dung, tần suất đăng, khung giờ hoạt động)
+   - Lập trường thái độ (quan điểm chính thức về các chủ đề cốt lõi, cách xử lý tranh cãi)
+   - Ghi chú đặc biệt (hồ sơ của nhóm mà tổ chức đại diện, thói quen vận hành)
+   - Ký ức tổ chức (phần quan trọng của hồ sơ, giới thiệu mối liên hệ của tổ chức này với sự kiện, cũng như các hành động và phản ứng đã có của tổ chức trong sự kiện)
+3. age: Cố định là 30 (tuổi ảo cho tài khoản tổ chức)
+4. gender: Cố định là "other" (biểu thị tài khoản tổ chức, không phải cá nhân)
+5. mbti: Loại MBTI dùng để mô tả phong cách tài khoản (ví dụ: ISTJ đại diện cho sự nghiêm túc, bảo thủ)
+6. country: Quốc gia (sử dụng tiếng Trung, ví dụ: "中国")
+7. profession: Mô tả chức năng của tổ chức
 8. interested_topics: Mảng các lĩnh vực quan tâm
-
-Quan trọng:
-- Tất cả giá trị các trường phải là chuỗi hoặc số, không cho phép giá trị null
-- persona phải là một đoạn mô tả văn bản liên tục, không sử dụng ký tự xuống dòng (\n)
-- Sử dụng tiếng Việt (ngoại trừ trường gender bắt buộc dùng tiếng Anh "other")
-- age phải là số nguyên 30, gender phải là chuỗi "other"
-- Phát ngôn của tài khoản tổ chức phải phù hợp với định vị danh tính của nó"""
+ 
+QUAN TRỌNG:
+- Tất cả giá trị các trường phải là chuỗi hoặc số, không cho phép giá trị null.
+- 'persona' phải là một đoạn mô tả văn bản mạch lạc, không sử dụng ký tự xuống dòng.
+- Sử dụng tiếng Trung (ngoại trừ trường 'gender' phải dùng chuỗi tiếng Anh "other").
+- 'age' phải là số nguyên 30, 'gender' phải là chuỗi "other".
+- Phát ngôn và giọng điệu của tài khoản phải phù hợp tuyệt đối với định vị danh tính và đặc thù của tổ chức.
+"""
     
     def _generate_profile_rule_based(
         self,
@@ -854,7 +935,9 @@ Quan trọng:
         graph_id: Optional[str] = None,
         parallel_count: int = 5,
         realtime_output_path: Optional[str] = None,
-        output_platform: str = "reddit"
+        output_platform: str = "reddit",
+        simulation_id: Optional[str] = None,
+        project_id: Optional[str] = None,
     ) -> List[OasisAgentProfile]:
         """
         Khởi tạo hàng loạt các Agent Profile từ các thực thể (Hỗ trợ Gen đa luồng song song)
@@ -877,6 +960,14 @@ Quan trọng:
         # Lưu Graph ID lại cho Zep xử lý search
         if graph_id:
             self.graph_id = graph_id
+
+        self._runtime_metadata = {
+            "component": "oasis_profile_generator",
+            "phase": "generate_profiles",
+            "simulation_id": simulation_id,
+            "project_id": project_id,
+            "platform": output_platform,
+        }
         
         total = len(entities)
         profiles = [None] * total  # Cấp trước 1 mảng để giữ đúng thứ tự Index
