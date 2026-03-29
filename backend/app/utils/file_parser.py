@@ -84,6 +84,7 @@ class FileParser:
         if suffix not in cls.SUPPORTED_EXTENSIONS:
             raise ValueError(f"Unsupported file format: {suffix}")
         
+        # Format Support: Leverages the existing extract_text method which supports PDF, Markdown, and TXT formats 
         if suffix == '.pdf':
             return cls._extract_from_pdf(file_path)
         elif suffix in {'.md', '.markdown'}:
@@ -123,21 +124,27 @@ class FileParser:
     @classmethod
     def extract_from_multiple(cls, file_paths: List[str]) -> str:
         """
-        Trích xuất văn bản từ nhiều tệp và gộp lại
+        Usage Context
+        This function is typically used in the early stages of the GraphRAG pipeline when users upload multiple documents that need to be processed together for entity extraction and relationship mapping. The combined output serves as input for text chunking and subsequent LLM-based analysis in the knowledge graph construction workflow
 
+        Trích xuất văn bản từ nhiều tệp và gộp lại
         Args:
             file_paths: Danh sách đường dẫn tệp
 
         Returns:
             Văn bản đã gộp
+
+        The extract_from_multiple method is a class method of the FileParser class that processes multiple document files simultaneously. It's designed to aggregate content from various source files (PDF, Markdown, TXT) into a single text string that can be fed into the knowledge graph construction pipeline.
         """
         all_texts = []
         
+        # Batch Processing: Takes a list of file paths and processes each one sequentially
         for i, file_path in enumerate(file_paths, 1):
             try:
                 text = cls.extract_text(file_path)
                 filename = Path(file_path).name
                 all_texts.append(f"=== Document {i}: {filename} ===\n{text}")
+            # Error Handling: If a file fails to extract, it includes an error message in the output rather than failing completely
             except Exception as e:
                 all_texts.append(f"=== Document {i}: {file_path} (extract failed: {str(e)}) ===")
         

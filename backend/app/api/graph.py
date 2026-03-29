@@ -263,6 +263,7 @@ def generate_ontology():
 
 # ============== API 2: Build graph ==============
 
+# API ROUTE DEFINITION - Flash route handler for graph construction requests
 @graph_bp.route('/build', methods=['POST'])
 def build_graph():
     """
@@ -285,6 +286,12 @@ def build_graph():
                 "message": "Graph build task started"
             }
         }
+
+    Graph builder workflow 
+        - [1] - create_graph()
+        - [2] - set_ontology()
+        - [3] - split_text()
+        - [4] - add_text_batches()
     """
     try:
         logger.info("=== Start building graph ===")
@@ -311,7 +318,8 @@ def build_graph():
                 "error": "Please provide project_id"
             }), 400
         
-        # Lấy project
+        # RETRIEVE PROJECT CONTEXT
+        # Fetches project stae including ontology from previous phase 
         project = ProjectManager.get_project(project_id)
         if not project:
             return jsonify({
@@ -388,7 +396,8 @@ def build_graph():
                     message="Initializing graph builder service..."
                 )
                 
-                # Tạo graph builder service
+                # INITIALIZE GRAPH BUILDER 
+                # Creates service instance with Zep Cloud API client
                 builder = GraphBuilderService(api_key=Config.ZEP_API_KEY)
                 
                 # Chunk text
@@ -397,6 +406,7 @@ def build_graph():
                     message="Splitting text into chunks...",
                     progress=5
                 )
+                # [3] - Splits document into overlapping chunks for processing
                 chunks = TextProcessor.split_text(
                     text, 
                     chunk_size=chunk_size, 
@@ -410,6 +420,8 @@ def build_graph():
                     message="Creating Zep graph...",
                     progress=10
                 )
+
+                # [1] - Initializes empty graph in Zep Cloud with unique ID
                 graph_id = builder.create_graph(name=graph_name)
                 
                 # Cập nhật graph_id của project
@@ -422,11 +434,12 @@ def build_graph():
                     message="Setting ontology definition...",
                     progress=15
                 )
+                # [2] - Defines entity and relationship types for the graph
                 builder.set_ontology(graph_id, ontology)
                 
                 # Callback cập nhật progress khi add text
                 def add_progress_callback(msg, progress_ratio):
-                    progress = 15 + int(progress_ratio * 40)
+                    progress = 15 + int(progress_ratio * 40)    # 15% - 55%
                     task_manager.update_task(
                         task_id,
                         message=msg,
@@ -439,6 +452,7 @@ def build_graph():
                     progress=15
                 )
                 
+                # [4] - Sends text chunks as episodes to Zep for entity extraction
                 episode_uuids = builder.add_text_batches(
                     graph_id, 
                     chunks,
@@ -453,14 +467,16 @@ def build_graph():
                     progress=55
                 )
                 
+                # Progress callback updates UI
                 def wait_progress_callback(msg, progress_ratio):
-                    progress = 55 + int(progress_ratio * 35)
+                    progress = 55 + int(progress_ratio * 35)    # # 55% - 90%
                     task_manager.update_task(
                         task_id,
                         message=msg,
                         progress=progress
                     )
                 
+                # WAITING FOR PROCESSING - Initiates polling loop for episode completion
                 builder._wait_for_episodes(episode_uuids, wait_progress_callback)
                 
                 # Lấy graph data
@@ -471,7 +487,7 @@ def build_graph():
                 )
                 graph_data = builder.get_graph_data(graph_id)
                 
-                # Cập nhật trạng thái project
+                # Update project status
                 project.status = ProjectStatus.GRAPH_COMPLETED
                 ProjectManager.save_project(project)
                 
@@ -510,7 +526,8 @@ def build_graph():
                     error=traceback.format_exc()
                 )
         
-        # Chạy background thread
+        # START ASYNC TASK
+        # Lauches background thread for long-running graph construction
         thread = threading.Thread(target=build_task, daemon=True)
         thread.start()
         

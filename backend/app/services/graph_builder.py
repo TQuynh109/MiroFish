@@ -84,6 +84,7 @@ class GraphBuilderService:
         )
         
         # Bắt đầu gọi Workder ở luồng ảo (Back ground Thread) để người dùng không tắc giao diện đợi xử lý
+        # Asynchronous Execution: Graph building runs in background threads with progress tracking through a task management system
         thread = threading.Thread(
             target=self._build_graph_worker,
             args=(task_id, text, ontology, graph_name, chunk_size, chunk_overlap, batch_size)
@@ -120,7 +121,7 @@ class GraphBuilderService:
                 message=f"Created empty graph: {graph_id}"
             )
             
-            # 2. 设置本体
+            # 2. Thiết lập ontology
             self.set_ontology(graph_id, ontology)
             self.task_manager.update_task(
                 task_id,
@@ -129,7 +130,8 @@ class GraphBuilderService:
             )
             
             # Bước 3. Chia nhỏ văn bản gốc
-            chunks = TextProcessor.split_text(text, chunk_size, chunk_overlap)
+            # Text Processing: Chunks documents and sends them to Zep for entity extraction
+            chunks = TextProcessor.split_text(text, chunk_size, chunk_overlap) # Split into chunks
             total_chunks = len(chunks)
             self.task_manager.update_task(
                 task_id,
@@ -138,6 +140,7 @@ class GraphBuilderService:
             )
             
             # Bước 4. Gửi các đợt chunk tới Zep dưới dạng batch
+            # Send in batches (size=3)
             episode_uuids = self.add_text_batches(
                 graph_id, chunks, batch_size,
                 lambda msg, prog: self.task_manager.update_task(
@@ -154,6 +157,7 @@ class GraphBuilderService:
                 message="Waiting for Zep to process data..."
             )
             
+            # Wait for Zep processing
             self._wait_for_episodes(
                 episode_uuids,
                 lambda msg, prog: self.task_manager.update_task(
@@ -170,6 +174,7 @@ class GraphBuilderService:
                 message="Fetching finalized graph info..."
             )
             
+            # Retrieve graph statistics
             graph_info = self._get_graph_info(graph_id)
             
             # Thông báo hoàn tất
@@ -185,9 +190,12 @@ class GraphBuilderService:
             self.task_manager.fail_task(task_id, error_msg)
     
     def create_graph(self, name: str) -> str:
-        """Khai báo một Graph mới với Zep API (Sử dụng công khai public)"""
+        """Graph Creation: Initializes a new graph in Zep Cloud with a unique ID"""
+
+        # Generate unique graph_id
         graph_id = f"mirofish_{uuid.uuid4().hex[:16]}"
         
+        # Call Zep API create()
         self.client.graph.create(
             graph_id=graph_id,
             name=name,
@@ -197,7 +205,10 @@ class GraphBuilderService:
         return graph_id
     
     def set_ontology(self, graph_id: str, ontology: Dict[str, Any]):
-        """Cấu hình dữ liệu Ontology (Bản thể học) cho Graph trên server Zep (Public access)"""
+        """
+        Cấu hình dữ liệu Ontology (Bản thể học) cho Graph trên server Zep (Public access)
+        Ontology Setup: Defines the schema for entities and relationships using dynamic class creation.
+        """
         import warnings
         from typing import Optional
         from pydantic import Field
@@ -218,6 +229,8 @@ class GraphBuilderService:
         
         # Khởi tạo động (Dynamic Class Creation) các Model Loại Thực thể từ JSON đầu vào
         entity_types = {}
+
+        # Processes each entity type from ontology definition
         for entity_def in ontology.get("entity_types", []):
             name = entity_def["name"]
             description = entity_def.get("description", f"A {name} entity.")
@@ -235,10 +248,10 @@ class GraphBuilderService:
             
             attrs["__annotations__"] = annotations
             
-            # Dựng Class ảo
+            # Dynamic class generation - Create Pydnatic model class for entity type at runtime
             entity_class = type(name, (EntityModel,), attrs)
             entity_class.__doc__ = description
-            entity_types[name] = entity_class
+            entity_types[name] = entity_class # Store in entity_types dict
         
         # Tương tự, dựa vào JSON để khởi tạo động khai báo các Model Loại Quan Hệ
         edge_definitions = {}
@@ -261,6 +274,7 @@ class GraphBuilderService:
             
             # Khởi tạo Class động với Tên chuẩn format (PascalCase)
             class_name = ''.join(word.capitalize() for word in name.split('_'))
+            # Creates Pydantic model class for relationship type
             edge_class = type(class_name, (EdgeModel,), attrs)
             edge_class.__doc__ = description
             
@@ -275,10 +289,11 @@ class GraphBuilderService:
                 )
             
             if source_targets:
-                edge_definitions[name] = (edge_class, source_targets)
+                edge_definitions[name] = (edge_class, source_targets) # Store in edge_definitions dict
         
         # Action Gọi lệnh thay đổi Ontology cho môi trường GraphID của Zep
         if entity_types or edge_definitions:
+            # Call Zep set_ontology() 
             self.client.graph.set_ontology(
                 graph_ids=[graph_id],
                 entities=entity_types if entity_types else None,
@@ -308,7 +323,7 @@ class GraphBuilderService:
                     progress
                 )
             
-            # Chuẩn bị định dạng gói dữ liệu (Episode data) để tương thích Zep Graph
+            # Create EpisodeData objects
             episodes = [
                 EpisodeData(data=chunk, type="text")
                 for chunk in batch_chunks
@@ -316,6 +331,7 @@ class GraphBuilderService:
             
             # Khởi chạy gửi cho Zep Server
             try:
+                # UPLOAD BATCH TO ZEP - Sends batch of episodes for entity extraction
                 batch_result = self.client.graph.add_batch(
                     graph_id=graph_id,
                     episodes=episodes
@@ -371,10 +387,13 @@ class GraphBuilderService:
             # Duyệt vòng lặp mỗi episode uuid để lấy cập nhật tiến trình check của từng episode một
             for ep_uuid in list(pending_episodes):
                 try:
+                    # CHECK EPISODE STATUS - Queries individual episode processing status
                     episode = self.client.graph.episode.get(uuid_=ep_uuid)
+                    # CHECK PROCESSED FLAG - Determines if Zep 
                     is_processed = getattr(episode, 'processed', False)
                     
                     if is_processed:
+                        # if processed: remove from set
                         pending_episodes.remove(ep_uuid)
                         completed_count += 1
                         
@@ -383,6 +402,7 @@ class GraphBuilderService:
                     pass
             
             elapsed = int(time.time() - start_time)
+            # update progress callback
             if progress_callback:
                 progress_callback(
                     f"Zep is processing in the background... {completed_count}/{total_episodes} done, {len(pending_episodes)} tasks remaining ({elapsed}s elapsed)",
@@ -393,6 +413,7 @@ class GraphBuilderService:
                 time.sleep(3)  # Lặp chu kỳ check mỗi 3 giây
         
         if progress_callback:
+            # Final completion message
             progress_callback(f"Data upload process completed: {completed_count}/{total_episodes}", 1.0)
     
     def _get_graph_info(self, graph_id: str) -> GraphInfo:
