@@ -162,7 +162,7 @@ class OasisProfileGenerator:
     
     # List mảng quốc tịch Cơ Bản
     COUNTRIES = [
-        "China", "US", "UK", "Japan", "Germany", "France", 
+        "Vietnam", "China", "US", "UK", "Japan", "Germany", "France", 
         "Canada", "Australia", "Brazil", "India", "South Korea"
     ]
     
@@ -676,7 +676,7 @@ class OasisProfileGenerator:
     def _get_system_prompt(self, is_individual: bool) -> str:
         """Lấy prompt cho hệ thống"""
 
-        # base_prompt = "You are an expert in generating social media user personas. Generate detailed and realistic personas for public opinion simulation to recreate existing real-world conditions to the greatest extent possible. You must return a valid JSON format; all string values must not contain unescaped line breaks. Use Chinese."
+        # base_prompt = "You are an expert in generating social media user personas. Generate detailed and realistic personas for public opinion simulation to recreate existing real-world conditions to the greatest extent possible. You must return a valid JSON format; all string values must not contain unescaped line breaks. Use Vietnamese."
 
         base_prompt = "Bạn là chuyên gia tạo hồ sơ người dùng mạng xã hội. Hãy tạo các nhân vật chi tiết và chân thực phục vụ cho việc mô phỏng dư luận, nhằm tái hiện tối đa các tình huống thực tế hiện có. Phải trả về định dạng JSON hợp lệ; tất cả các giá trị chuỗi không được chứa ký tự xuống dòng chưa được xử lý (unescaped). Sử dụng tiếng Việt."
         return base_prompt
@@ -718,14 +718,14 @@ class OasisProfileGenerator:
 # 3. age: Age as a number (must be an integer)
 # 4. gender: Gender, must be in English: "male" or "female"
 # 5. mbti: MBTI type (e.g., INTJ, ENFP, etc.)
-# 6. country: Country (use Chinese, e.g., "中国")
+# 6. country: Country (use Vietnamese, e.g., "Việt Nam")
 # 7. profession: Occupation
 # 8. interested_topics: An array of interested topics
  
 # IMPORTANT:
 # - All field values must be strings or numbers; do not use line breaks.
 # - The 'persona' must be a coherent block of text description.
-# - Use Chinese (except for the 'gender' field, which must be English male/female).
+# - Use Vietnamese (except for the 'gender' field, which must be English male/female).
 # - Content must remain consistent with the entity information.
 # - 'age' must be a valid integer; 'gender' must be "male" or "female"."""
 
@@ -753,14 +753,14 @@ Vui lòng tạo JSON bao gồm các trường sau:
 3. age: Con số tuổi (phải là số nguyên)
 4. gender: Giới tính, phải là tiếng Anh: "male" hoặc "female"
 5. mbti: Loại MBTI (như INTJ, ENFP, v.v.)
-6. country: Quốc gia (sử dụng tiếng Trung, ví dụ: "中国")
+6. country: Quốc gia (sử dụng tiếng Việt, ví dụ: "Việt Nam")
 7. profession: Nghề nghiệp
 8. interested_topics: Mảng các chủ đề quan tâm
  
 QUAN TRỌNG:
 - Tất cả giá trị các trường phải là chuỗi hoặc số, không sử dụng ký tự xuống dòng.
 - 'persona' phải là một đoạn mô tả văn bản mạch lạc.
-- Sử dụng tiếng Trung (ngoại trừ trường 'gender' phải dùng tiếng Anh male/female).
+- Sử dụng tiếng Việt (ngoại trừ trường 'gender' phải dùng tiếng Anh male/female).
 - Nội dung phải nhất quán với thông tin thực thể.
 - 'age' phải là số nguyên hợp lệ, 'gender' phải là "male" hoặc "female".
 """
@@ -802,14 +802,14 @@ QUAN TRỌNG:
 # 3. age: Fixed at 30 (virtual age for an organizational account)
 # 4. gender: Fixed as "other" (representing non-individual accounts)
 # 5. mbti: MBTI type used to describe the account's style (e.g., ISTJ for rigorous/conservative)
-# 6. country: Country (use Chinese, e.g., "中国")
+# 6. country: Country (use Vietnamese, e.g., "Việt Nam")
 # 7. profession: Description of organizational functions
 # 8. interested_topics: An array of focused fields/areas of interest
  
 # IMPORTANT:
 # - All field values must be strings or numbers; null values are not allowed.
 # - 'persona' must be a coherent block of text description; do not use line breaks.
-# - Use Chinese (except for the 'gender' field, which must be the English string "other").
+# - Use Vietnamese (except for the 'gender' field, which must be the English string "other").
 # - 'age' must be the integer 30; 'gender' must be the string "other".
 # - The account's tone and discourse must strictly align with its institutional identity and positioning.
 # """
@@ -838,14 +838,14 @@ Vui lòng tạo JSON bao gồm các trường sau:
 3. age: Cố định là 30 (tuổi ảo cho tài khoản tổ chức)
 4. gender: Cố định là "other" (biểu thị tài khoản tổ chức, không phải cá nhân)
 5. mbti: Loại MBTI dùng để mô tả phong cách tài khoản (ví dụ: ISTJ đại diện cho sự nghiêm túc, bảo thủ)
-6. country: Quốc gia (sử dụng tiếng Trung, ví dụ: "中国")
+6. country: Quốc gia (sử dụng tiếng Việt, ví dụ: "Việt Nam")
 7. profession: Mô tả chức năng của tổ chức
 8. interested_topics: Mảng các lĩnh vực quan tâm
  
 QUAN TRỌNG:
 - Tất cả giá trị các trường phải là chuỗi hoặc số, không cho phép giá trị null.
 - 'persona' phải là một đoạn mô tả văn bản mạch lạc, không sử dụng ký tự xuống dòng.
-- Sử dụng tiếng Trung (ngoại trừ trường 'gender' phải dùng chuỗi tiếng Anh "other").
+- Sử dụng tiếng Việt (ngoại trừ trường 'gender' phải dùng chuỗi tiếng Anh "other").
 - 'age' phải là số nguyên 30, 'gender' phải là chuỗi "other".
 - Phát ngôn và giọng điệu của tài khoản phải phù hợp tuyệt đối với định vị danh tính và đặc thù của tổ chức.
 """
@@ -936,6 +936,7 @@ QUAN TRỌNG:
         parallel_count: int = 5,
         realtime_output_path: Optional[str] = None,
         output_platform: str = "reddit",
+        metadata_platform: Optional[str] = None,
         simulation_id: Optional[str] = None,
         project_id: Optional[str] = None,
     ) -> List[OasisAgentProfile]:
@@ -950,6 +951,7 @@ QUAN TRỌNG:
             parallel_count: Số luồng song song, mặc định 5
             realtime_output_path: Đường dẫn lưu file realtime (Gen ra đứa nào auto save đứa đó luôn)
             output_platform: Format lưu trữ output ("reddit" hoạc "twitter")
+            metadata_platform: Nền tảng dùng cho metadata cost
             
         Returns:
             Danh sách Profile Agent
@@ -966,7 +968,7 @@ QUAN TRỌNG:
             "phase": "generate_profiles",
             "simulation_id": simulation_id,
             "project_id": project_id,
-            "platform": output_platform,
+            "platform": metadata_platform,
         }
         
         total = len(entities)
