@@ -444,14 +444,14 @@ class GraphBuilderService:
             invalid_at = getattr(edge, 'invalid_at', None)
             expired_at = getattr(edge, 'expired_at', None)
             
-            # 获取 episodes
+            # Lấy episodes
             episodes = getattr(edge, 'episodes', None) or getattr(edge, 'episode_ids', None)
             if episodes and not isinstance(episodes, list):
                 episodes = [str(episodes)]
             elif episodes:
                 episodes = [str(e) for e in episodes]
             
-            # 获取 fact_type
+            # Lấy fact_type
             fact_type = getattr(edge, 'fact_type', None) or edge.name or ""
             
             edges_data.append({

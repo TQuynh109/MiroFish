@@ -14,10 +14,15 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 
 from graphiti_core.nodes import EntityNode as GraphitiEntityNode
+# from graphiti_core.search.search_config_recipes import (
+#     EDGE_HYBRID_SEARCH_RRF,
+#     NODE_HYBRID_SEARCH_RRF,
+# )
 from graphiti_core.search.search_config_recipes import (
-    EDGE_HYBRID_SEARCH_RRF,
-    NODE_HYBRID_SEARCH_RRF,
+    EDGE_HYBRID_SEARCH_CROSS_ENCODER,
+    NODE_HYBRID_SEARCH_CROSS_ENCODER,
 )
+ 
 
 from ..config import Config
 from ..utils.logger import get_logger
@@ -561,11 +566,13 @@ class ZepToolsService:
         async def _run():
             results: List[SearchResults] = []
             if scope in ("edges", "both"):
-                cfg = EDGE_HYBRID_SEARCH_RRF.model_copy(deep=True)
+                # cfg = EDGE_HYBRID_SEARCH_RRF.model_copy(deep=True)
+                cfg = EDGE_HYBRID_SEARCH_CROSS_ENCODER.model_copy(deep=True)
                 cfg.limit = limit
                 results.append(await graphiti.search_(query, config=cfg, group_ids=group_ids))
             if scope in ("nodes", "both"):
-                cfg = NODE_HYBRID_SEARCH_RRF.model_copy(deep=True)
+                # cfg = NODE_HYBRID_SEARCH_RRF.model_copy(deep=True)
+                cfg = NODE_HYBRID_SEARCH_CROSS_ENCODER.model_copy(deep=True)
                 cfg.limit = limit
                 results.append(await graphiti.search_(query, config=cfg, group_ids=group_ids))
             return SearchResults.merge(results) if results else SearchResults()

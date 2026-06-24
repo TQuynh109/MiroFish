@@ -1325,19 +1325,25 @@ async def run_twitter_simulation(
     if os.path.exists(db_path):
         os.remove(db_path)
 
-    twitter_channel = Channel()
-    twitter_platform = Platform(
-        db_path=db_path,
-        channel=twitter_channel,
-        recsys_type="reddit",       # score-based, không load model embedding → nhanh hơn twhin-bert
-        refresh_rec_post_count=2,
-        max_rec_post_len=2,
-        following_post_count=3,
-    )
+    # twitter_channel = Channel()
+    # twitter_platform = Platform(
+    #     db_path=db_path,
+    #     channel=twitter_channel,
+    #     recsys_type="reddit",       # score-based, không load model embedding → nhanh hơn twhin-bert
+    #     refresh_rec_post_count=2,
+    #     max_rec_post_len=2,
+    #     following_post_count=3,
+    # )
+    # result.env = oasis.make(
+    #     agent_graph=result.agent_graph,
+    #     platform=twitter_platform,
+    #     semaphore=20,
+    # )
     result.env = oasis.make(
         agent_graph=result.agent_graph,
-        platform=twitter_platform,
-        semaphore=30,
+        platform=oasis.DefaultPlatformType.TWITTER,
+        database_path=db_path,
+        semaphore=30,  # Tối đa 3 LLM call đồng thời trong cùng 1 round
     )
 
     await result.env.reset()

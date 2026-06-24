@@ -428,7 +428,7 @@ class SimulationRunner:
         simulation_id: str,
         platform: str = "parallel",  # "twitter" / "reddit" / "parallel"
         max_rounds: int = None,       # Giới hạn số vòng tối đa (None = không giới hạn)
-        enable_graph_memory_update: bool = False,  # Ghi hành động agent vào Zep Graph
+        enable_graph_memory_update: bool = True,  # Ghi hành động agent vào Zep Graph
         graph_id: str = None          # Bắt buộc nếu enable_graph_memory_update=True
     ) -> SimulationRunState:
         """
