@@ -32,6 +32,8 @@ from ..prompts.report_agent import (
     TOOL_DESC_PANORAMA_SEARCH,
     TOOL_DESC_QUICK_SEARCH,
     TOOL_DESC_INTERVIEW_AGENTS,
+    TOOL_DESC_PRICE_DATA_ANALYSIS,
+    PRICE_PREDICTION_SECTION_ADDENDUM,
     SECTION_USER_PROMPT_TEMPLATE,
     REACT_OBSERVATION_TEMPLATE,
     REACT_INSUFFICIENT_TOOLS_MSG,
@@ -42,6 +44,7 @@ from ..prompts.report_agent import (
     CHAT_SYSTEM_PROMPT_TEMPLATE,
     CHAT_OBSERVATION_SUFFIX
 )
+from .price_data_service import analyze_price_data, get_price_summary
 
 logger = get_logger('mirofish.report_agent')
 
@@ -593,6 +596,13 @@ class ReportAgent:
                     "interview_topic": "Interview topic or requirement description (e.g.: 'Understand students opinions on dorm formaldehyde issue')",
                     "max_agents": "Maximum number of agents to interview (optional, default 5, maximum 10)"
                 }
+            },
+            "price_data_analysis": {
+                "name": "price_data_analysis",
+                "description": TOOL_DESC_PRICE_DATA_ANALYSIS,
+                "parameters": {
+                    "days": "Number of days to display in the price table (optional, default 30)"
+                }
             }
         }
     
@@ -662,7 +672,13 @@ class ReportAgent:
                     max_agents=max_agents
                 )
                 return result.to_text()
-            
+
+            elif tool_name == "price_data_analysis":
+                days = parameters.get("days", 30)
+                if isinstance(days, str):
+                    days = int(days)
+                return analyze_price_data(days=days)
+
             # ========== Công cụ cũ giữ lại để tương thích (chuyển hướng sang công cụ mới) ==========
             
             elif tool_name == "search_graph":
@@ -705,7 +721,7 @@ class ReportAgent:
             return f"Tool execution failed: {str(e)}"
     
     # Tập hợp các tool khả dụng, để kiểm tra tính hợp lệ khi quét JSON
-    VALID_TOOL_NAMES = {"insight_forge", "panorama_search", "quick_search", "interview_agents"}
+    VALID_TOOL_NAMES = {"insight_forge", "panorama_search", "quick_search", "interview_agents", "price_data_analysis"}
 
     def _parse_tool_calls(self, response: str) -> List[Dict[str, Any]]:
         """
@@ -806,6 +822,10 @@ class ReportAgent:
         if progress_callback:
             progress_callback("planning", 30, "Generating report outline...")
         
+        # Lấy tóm tắt dữ liệu giá dầu thực tế để inject vào planning context
+        price_summary = get_price_summary()
+        logger.info(f"Price data summary for planning: {len(price_summary)} chars")
+
         system_prompt = PLAN_SYSTEM_PROMPT
         user_prompt = PLAN_USER_PROMPT_TEMPLATE.format(
             simulation_requirement=self.simulation_requirement,
@@ -814,6 +834,7 @@ class ReportAgent:
             entity_types=list(context.get('graph_statistics', {}).get('entity_types', {}).keys()),
             total_entities=context.get('total_entities', 0),
             related_facts_json=json.dumps(context.get('related_facts', [])[:10], ensure_ascii=False, indent=2),
+            price_data_summary=price_summary,
         )
 
         try:
@@ -822,7 +843,7 @@ class ReportAgent:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.3
+                temperature=0.5
             )
             
             if progress_callback:
@@ -903,6 +924,12 @@ class ReportAgent:
             tools_description=self._get_tools_description(),
         )
 
+        # Nếu section là dự đoán giá → append chỉ dẫn đặc biệt
+        price_keywords = ["Kịch Bản", "kịch bản", "Diễn Biến Giá Dầu", "ngắn hạn"]
+        if any(kw in section.title.lower() for kw in price_keywords):
+            system_prompt += PRICE_PREDICTION_SECTION_ADDENDUM
+            logger.info(f"Price prediction addendum appended for section: {section.title}")
+
         # Xây dựng prompt cho user - mỗi chương trước đó sẽ truyền vào tối đa 4000 ký tự
         if previous_sections:
             previous_parts = []
@@ -930,7 +957,7 @@ class ReportAgent:
         min_tool_calls = 3  # Số lần gọi công cụ tối thiểu
         conflict_retries = 0  # Số lần gọi công cụ và trả về Final Answer bị xung đột liên tiếp
         used_tools = set()  # Lưu lại tên các công cụ đã được gọi
-        all_tools = {"insight_forge", "panorama_search", "quick_search", "interview_agents"}
+        all_tools = {"insight_forge", "panorama_search", "quick_search", "interview_agents", "price_data_analysis"}
 
         # Ngữ cảnh báo cáo, dùng để tự sinh câu hỏi thứ cấp trong InsightForge
         report_context = f"Chapter Title: {section.title}\nSimulation Requirement: {self.simulation_requirement}"

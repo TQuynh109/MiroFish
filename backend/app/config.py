@@ -69,6 +69,15 @@ class Config:
     REPORT_AGENT_MAX_TOOL_CALLS = int(os.environ.get('REPORT_AGENT_MAX_TOOL_CALLS', '5'))
     REPORT_AGENT_MAX_REFLECTION_ROUNDS = int(os.environ.get('REPORT_AGENT_MAX_REFLECTION_ROUNDS', '2'))
     REPORT_AGENT_TEMPERATURE = float(os.environ.get('REPORT_AGENT_TEMPERATURE', '0.5'))
+
+    # Cấu hình khoảng thời gian mô phỏng (dùng để lọc dữ liệu giá)
+    SIMULATION_START_TIME = os.environ.get('start_time', '').strip()
+    SIMULATION_END_TIME = os.environ.get('end_time', '').strip()
+
+    # Đường dẫn file dữ liệu giá dầu
+    PRICE_DATA_CSV = os.path.join(
+        os.path.dirname(__file__), '../../data/price_oils.csv'
+    )
     
     @classmethod
     def validate(cls):

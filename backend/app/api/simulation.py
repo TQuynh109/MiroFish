@@ -1501,7 +1501,7 @@ def start_simulation():
 
         platform = data.get('platform', 'parallel')
         max_rounds = data.get('max_rounds')  # Tùy chọn: số vòng mô phỏng tối đa
-        enable_graph_memory_update = data.get('enable_graph_memory_update', False)  # Tùy chọn: có bật cập nhật bộ nhớ đồ thị hay không
+        enable_graph_memory_update = data.get('enable_graph_memory_update', True)  # Tùy chọn: có bật cập nhật bộ nhớ đồ thị hay không
         force = data.get('force', False)  # Tùy chọn: buộc chạy lại
 
         # Kiểm tra tham số max_rounds

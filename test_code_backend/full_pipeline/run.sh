@@ -46,6 +46,9 @@ info "  articles      : $ARTICLE_COUNT"
 info "  project_name  : $PROJECT_NAME"
 info "  combined_file : $COMBINED_FILE ($(wc -c < "$COMBINED_FILE" | tr -d ' ') bytes)"
 
+
+export HF_HOME="$HOME/.cache/huggingface"
+HF_HUB_OFFLINE=1
 # ─── Start Flask backend (if not already running) ─────────────────────────────
 if curl -sf "$BACKEND_URL/health" >/dev/null 2>&1; then
     info "Backend already running at $BACKEND_URL"
@@ -126,7 +129,7 @@ info "=== Step 4/7: Preparing simulation (agent profiles + config) ==="
 RESP=$(curl -sf "$BACKEND_URL/api/simulation/prepare" \
     -H "Content-Type: application/json" \
     -d "$(jq -n --arg s "$SIM_ID" \
-        '{simulation_id: $s, use_llm_for_profiles: true, parallel_profile_count: 5}')")
+        '{simulation_id: $s, use_llm_for_profiles: true, parallel_profile_count: 50}')")
 assert_ok "$RESP" "simulation/prepare"
 
 if [[ "$(echo "$RESP" | jq -r '.data.already_prepared')" == "true" ]]; then
@@ -154,7 +157,7 @@ fi
 info "=== Step 5/7: Starting simulation (platform: parallel) ==="
 RESP=$(curl -sf "$BACKEND_URL/api/simulation/start" \
     -H "Content-Type: application/json" \
-    -d "$(jq -n --arg s "$SIM_ID" '{simulation_id: $s, platform: "parallel"}')")
+    -d "$(jq -n --arg s "$SIM_ID" '{simulation_id: $s, platform: "parallel", enable_graph_memory_update: true}')")
 assert_ok "$RESP" "simulation/start"
 
 RUNNER_STATUS=$(echo "$RESP" | jq -r '.data.runner_status')
