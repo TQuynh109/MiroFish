@@ -201,13 +201,13 @@
           <div class="project-picker">
             <span class="picker-icon">👁</span>
             <div class="picker-text">
-              <div class="picker-title">View — chỉ xem dữ liệu cũ</div>
+              <div class="picker-title">View Simulation Results</div>
               <select v-model="pickedProjectId" class="picker-select" :disabled="projectsLoading">
                 <option :value="null" disabled>
                   {{ projectsLoading ? 'Loading projects...' : (projects.length ? 'Choose a project' : 'No project found') }}
                 </option>
                 <option v-for="p in projects" :key="p.simulation_id" :value="p.project_id">
-                  {{ p.project_id }}
+                  {{ projectLabel(p.project_id) }}
                 </option>
               </select>
             </div>
@@ -236,6 +236,15 @@ const router = useRouter()
 const projects = ref([])
 const projectsLoading = ref(false)
 const pickedProjectId = ref(null)
+
+const PROJECT_ID_LABELS = {
+  proj_9ded74585aee: 'The base price stabilizes.',
+  proj_d392e152f9e2: 'The base price increases.',
+  proj_d5d25a92ff93: 'The base price decreases.',
+  proj_704e972aa076: 'The base price fluctuates erratically.'
+}
+
+const projectLabel = (projectId) => PROJECT_ID_LABELS[projectId] || projectId
 
 const loadProjects = async () => {
   projectsLoading.value = true
