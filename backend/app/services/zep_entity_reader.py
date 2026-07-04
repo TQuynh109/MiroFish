@@ -163,10 +163,10 @@ class ZepEntityReader:
     3. Enrich mỗi entity với edges và related_nodes lân cận
     """
 
-    def __init__(self, api_key: Optional[str] = None):
-        # api_key giữ lại trong chữ ký để tương thích caller cũ, nhưng không còn dùng:
-        # Graphiti lấy cấu hình Neo4j + LLM qua get_graphiti() (lazy, per-thread).
-        self.api_key = api_key
+    def __init__(self):
+        # Graphiti lấy cấu hình Neo4j + LLM qua get_graphiti() (lazy, per-thread);
+        # reader này không cần API key truyền vào.
+        pass
 
     # --------------------------------------------------------------------------
     # PRIVATE: _call_with_retry — Retry wrapper cho các API call Zep đơn lẻ

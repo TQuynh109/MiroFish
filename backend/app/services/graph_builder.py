@@ -1,8 +1,3 @@
-"""
-Dịch vụ xây dựng Đồ thị Tri thức (Knowledge Graph)
-API 2: Dùng graphiti_core (Neo4j backend) để xây dựng một Standalone Graph (Đồ thị độc lập)
-"""
-
 import os
 import time
 import uuid
@@ -45,14 +40,11 @@ class GraphBuilderService:
     Đảm nhiệm logic dùng graphiti_core (Neo4j) để thiết lập Graph
     """
 
-    def __init__(self, api_key: Optional[str] = None):
-        # api_key giữ lại trong chữ ký để tương thích caller cũ, nhưng không còn dùng
-        # (Graphiti dùng Neo4j + LLM config, lấy lazy qua get_graphiti()).
-        self.api_key = api_key
+    def __init__(self):
+        # Graphiti tự lấy Neo4j + LLM config lazy qua get_graphiti()
         self.task_manager = TaskManager()
 
         # Ontology được build sẵn (Pydantic thuần) và truyền vào mỗi add_episode,
-        # vì Graphiti không có set_ontology server-side như Zep.
         self._entity_types: Dict[str, Type[BaseModel]] = {}
         self._edge_types: Dict[str, Type[BaseModel]] = {}
         self._edge_type_map: Dict[tuple, List[str]] = {}
@@ -64,7 +56,6 @@ class GraphBuilderService:
         graph_name: str = "MiroFish Graph",
         chunk_size: int = 500,
         chunk_overlap: int = 50,
-        batch_size: int = 3
     ) -> str:
         """
         Khởi chạy tiến trình bất đồng bộ xây dựng Graph
@@ -75,8 +66,6 @@ class GraphBuilderService:
             graph_name: Tên đặt cho Graph
             chunk_size: Kích thước từng khối text (chunk)
             chunk_overlap: Giới hạn những từ đè lên nhau giữa các chunk (bảo toàn flow hội thoại / ngữ cảnh)
-            batch_size: Chuyển dữ liệu theo mảng batch để tiết kiệm số lần Request
-            
         Returns:
             Trạng thái Task ID vừa khởi tạo
         """
@@ -94,7 +83,7 @@ class GraphBuilderService:
         # Asynchronous Execution: Graph building runs in background threads with progress tracking through a task management system
         thread = threading.Thread(
             target=self._build_graph_worker,
-            args=(task_id, text, ontology, graph_name, chunk_size, chunk_overlap, batch_size)
+            args=(task_id, text, ontology, graph_name, chunk_size, chunk_overlap)
         )
         thread.daemon = True
         thread.start()
@@ -109,7 +98,6 @@ class GraphBuilderService:
         graph_name: str,
         chunk_size: int,
         chunk_overlap: int,
-        batch_size: int
     ):
         """Tiến trình cài đặt ngầm tạo Graph với các bước tuần tự"""
         try:
@@ -149,8 +137,8 @@ class GraphBuilderService:
             # Bước 4. Gửi các đợt chunk tới Zep dưới dạng batch
             # Send in batches (size=3)
             episode_uuids = self.add_text_batches(
-                graph_id, chunks, batch_size,
-                lambda msg, prog: self.task_manager.update_task(
+                graph_id, chunks,
+                progress_callback=lambda msg, prog: self.task_manager.update_task(
                     task_id,
                     progress=20 + int(prog * 0.4),  # Thể hiện từ 20-60%
                     message=msg
@@ -291,7 +279,6 @@ class GraphBuilderService:
         self,
         graph_id: str,
         chunks: List[str],
-        batch_size: int = 3,
         progress_callback: Optional[Callable] = None
     ) -> List[str]:
         """Nạp từng chunk văn bản vào graph qua graphiti.add_episode (tuần tự).
@@ -299,9 +286,6 @@ class GraphBuilderService:
         Graphiti add_episode xử lý đồng bộ (await xong = đã extract & ghi Neo4j) và
         khuyến nghị chạy tuần tự để giữ ngữ cảnh temporal giữa các episode liên tiếp.
         Trả về list episode uuid.
-
-        `batch_size` không còn nghĩa "nhiều episode/1 request" (mỗi chunk = 1 episode);
-        giữ param cho tương thích caller, chỉ dùng để định nhịp progress.
         """
         graphiti = get_graphiti()
         episode_uuids: List[str] = []
@@ -444,14 +428,14 @@ class GraphBuilderService:
             invalid_at = getattr(edge, 'invalid_at', None)
             expired_at = getattr(edge, 'expired_at', None)
             
-            # 获取 episodes
+            # Lấy episodes
             episodes = getattr(edge, 'episodes', None) or getattr(edge, 'episode_ids', None)
             if episodes and not isinstance(episodes, list):
                 episodes = [str(episodes)]
             elif episodes:
                 episodes = [str(e) for e in episodes]
             
-            # 获取 fact_type
+            # Lấy fact_type
             fact_type = getattr(edge, 'fact_type', None) or edge.name or ""
             
             edges_data.append({

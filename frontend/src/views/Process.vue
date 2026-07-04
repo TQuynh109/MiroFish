@@ -2,7 +2,7 @@
   <div class="process-page">
     <!-- Thanh điều hướng trên cùng -->
     <nav class="navbar">
-      <div class="nav-brand" @click="goHome">MIROFISH</div>
+      <div class="nav-brand" @click="goHome">SIMPETRO</div>
       
       <!-- Chỉ báo bước ở giữa -->
       <div class="nav-center">
@@ -585,7 +585,7 @@ const handleNewProject = async () => {
       formDataObj.append('files', file)
     })
     formDataObj.append('simulation_requirement', pending.simulationRequirement)
-    
+
     // Gọi API tạo ontology
     const response = await generateOntology(formDataObj)
     

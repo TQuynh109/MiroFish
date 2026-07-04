@@ -143,8 +143,6 @@ def fetch_all_nodes(
     retry_delay: float = _DEFAULT_RETRY_DELAY,
 ) -> list[Any]:
     """Lấy toàn bộ EntityNode theo group_id, tối đa max_items (mặc định 2000)."""
-    # run_async (loop thread-local) thay vì asyncio.run (loop mới) để Neo4j driver
-    # luôn chạy trên cùng event loop đã gắn — tránh "Future attached to a different loop".
     return run_async(_fetch_all_nodes_async(driver, graph_id, page_size, max_items, max_retries, retry_delay))
 
 

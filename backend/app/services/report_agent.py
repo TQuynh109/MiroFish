@@ -498,9 +498,6 @@ class ReportAgent:
     # Số lần gọi công cụ tối đa (mỗi chương)
     MAX_TOOL_CALLS_PER_SECTION = 5
     
-    # Số vòng xem xét tối đa
-    MAX_REFLECTION_ROUNDS = 3
-    
     # Số lần gọi công cụ tối đa trong quá trình trò chuyện
     MAX_TOOL_CALLS_PER_CHAT = 2
     

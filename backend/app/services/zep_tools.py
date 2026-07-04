@@ -15,8 +15,8 @@ from dataclasses import dataclass, field
 
 from graphiti_core.nodes import EntityNode as GraphitiEntityNode
 from graphiti_core.search.search_config_recipes import (
-    EDGE_HYBRID_SEARCH_RRF,
-    NODE_HYBRID_SEARCH_RRF,
+    EDGE_HYBRID_SEARCH_CROSS_ENCODER,
+    NODE_HYBRID_SEARCH_CROSS_ENCODER,
 )
 
 from ..config import Config
@@ -427,10 +427,7 @@ class ZepToolsService:
     MAX_RETRIES = 3
     RETRY_DELAY = 2.0
     
-    def __init__(self, api_key: Optional[str] = None, llm_client: Optional[LLMClient] = None):
-        # api_key giữ lại trong chữ ký để tương thích caller cũ, không còn dùng:
-        # Graphiti lấy cấu hình Neo4j + LLM qua get_graphiti() (lazy, per-thread).
-        self.api_key = api_key
+    def __init__(self, llm_client: Optional[LLMClient] = None):
         # LLM client được sử dụng bởi InsightForge để sinh ra các sub-queries
         self._llm_client = llm_client
         logger.info("ZepToolsService initialized successfully")
@@ -547,8 +544,8 @@ class ZepToolsService:
         """Gọi Graphiti hybrid search và gộp kết quả node/edge.
 
         Map scope (Zep) → search recipe (Graphiti):
-          - "edges"  → EDGE_HYBRID_SEARCH_RRF (chỉ trả edges/facts)
-          - "nodes"  → NODE_HYBRID_SEARCH_RRF (chỉ trả nodes)
+          - "edges"  → EDGE_HYBRID_SEARCH_CROSS_ENCODER (chỉ trả edges/facts)
+          - "nodes"  → NODE_HYBRID_SEARCH_CROSS_ENCODER (chỉ trả nodes)
           - "both"   → chạy cả hai rồi gộp lại
 
         Trả về SearchResults (có .edges và .nodes) để caller xử lý đồng nhất.
@@ -561,11 +558,11 @@ class ZepToolsService:
         async def _run():
             results: List[SearchResults] = []
             if scope in ("edges", "both"):
-                cfg = EDGE_HYBRID_SEARCH_RRF.model_copy(deep=True)
+                cfg = EDGE_HYBRID_SEARCH_CROSS_ENCODER.model_copy(deep=True)
                 cfg.limit = limit
                 results.append(await graphiti.search_(query, config=cfg, group_ids=group_ids))
             if scope in ("nodes", "both"):
-                cfg = NODE_HYBRID_SEARCH_RRF.model_copy(deep=True)
+                cfg = NODE_HYBRID_SEARCH_CROSS_ENCODER.model_copy(deep=True)
                 cfg.limit = limit
                 results.append(await graphiti.search_(query, config=cfg, group_ids=group_ids))
             return SearchResults.merge(results) if results else SearchResults()
@@ -730,7 +727,6 @@ class ZepToolsService:
                 target_node_uuid=edge.target_node_uuid or ""
             )
 
-            # Bổ sung thông tin thời gian hợp lệ (temporal info).
             # Graphiti trả về datetime → ép sang str cho đồng nhất với EdgeInfo (Optional[str]).
             if include_temporal:
                 def _ts(value):
@@ -759,7 +755,6 @@ class ZepToolsService:
         
         try:
             # GraphitiEntityNode.get_by_uuid raise NodeNotFoundError nếu không có →
-            # được bắt bởi except phía dưới (log + trả None).
             driver = get_graphiti().driver
             node = self._call_with_retry(
                 func=lambda: run_async(GraphitiEntityNode.get_by_uuid(driver, node_uuid)),

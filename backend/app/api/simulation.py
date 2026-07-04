@@ -947,6 +947,7 @@ def get_simulation_history():
             
             # Lấy danh sách file của dự án liên kết (tối đa 3 file)
             project = ProjectManager.get_project(sim.project_id)
+            sim_dict["project_name"] = getattr(project, 'name', '') if project else ''
             if project and hasattr(project, 'files') and project.files:
                 sim_dict["files"] = [
                     {"filename": f.get("filename", "Unknown file")} 

@@ -118,7 +118,7 @@
         <div class="card-header">
           <div class="step-info">
             <span class="step-num">03</span>
-            <span class="step-title">Generate Dual-Platform Simulation Config</span>
+            <span class="step-title">Generate Dual-Platform (Twitter/Reddit) Simulation Config</span>
           </div>
           <div class="step-status">
             <span v-if="phase > 2" class="badge success">Completed</span>
@@ -130,7 +130,7 @@
         <div class="card-content">
           <p class="api-note">POST /api/simulation/prepare</p>
           <p class="description">
-            The LLM intelligently configures world time flow, recommendation algorithms, active time slots for each individual, posting frequency, and event triggers based on simulation requirements and real-world seeds
+            Automatically configure the simulation environment, including activity schedules, recommendation logic, content posting behavior, and event triggers for all agents
           </p>
           
           <!-- Config Preview -->
@@ -645,7 +645,8 @@ const props = defineProps({
   simulationId: String,  // passed from the parent component
   projectData: Object,
   graphData: Object,
-  systemLogs: Array
+  systemLogs: Array,
+  previewOnly: Boolean    // preview: chỉ load dữ liệu cũ, không gọi prepareSimulation
 })
 
 const emit = defineEmits(['go-back', 'next-step', 'add-log', 'update-status'])
@@ -1066,11 +1067,19 @@ watch(() => props.systemLogs?.length, () => {
 })
 
 onMounted(() => {
-  // Automatically start the preparation process
-  if (props.simulationId) {
-    addLog('Step2 Environment SetupInitializing')
-    startPrepareSimulation()
+  if (!props.simulationId) return
+
+  // Preview/read-only mode: chỉ load dữ liệu đã chuẩn bị trước đó,
+  // KHÔNG gọi prepareSimulation (không tốn LLM, không sinh agent mới)
+  if (props.previewOnly) {
+    addLog('Step2 (preview): loading existing data only, no LLM call')
+    loadPreparedData()
+    return
   }
+
+  // Automatically start the preparation process
+  addLog('Step2 Environment Setup Initializing')
+  startPrepareSimulation()
 })
 
 onUnmounted(() => {
