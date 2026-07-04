@@ -15,7 +15,7 @@ from graphiti_core import Graphiti
 from graphiti_core.llm_client.openai_generic_client import OpenAIGenericClient
 from graphiti_core.llm_client.config import LLMConfig
 from graphiti_core.embedder.openai import OpenAIEmbedder, OpenAIEmbedderConfig
-from graphiti_core.cross_encoder.client import CrossEncoderClient
+from graphiti_core.cross_encoder.bge_reranker_client import BGERerankerClient
 
 from ..config import Config
 from .logger import get_logger
@@ -23,14 +23,25 @@ from .logger import get_logger
 logger = get_logger("mirofish.graphiti")
 
 
-class NoOpCrossEncoder(CrossEncoderClient):
-    """No-op cross encoder — trả về passages nguyên gốc, không cần OpenAI API key."""
-    async def rank(self, query: str, passages: list[str]) -> list[tuple[str, float]]:
-        return [(p, 1.0) for p in passages]
-
-
 # Thread-local storage: mỗi thread có Graphiti instance + event loop riêng
 _local = threading.local()
+
+# Cross-encoder reranker (BGE, chạy local) được share toàn process:
+# model nặng ~2GB nên chỉ load một lần; .predict() chạy trong executor nên thread-safe.
+_cross_encoder = None
+_cross_encoder_lock = threading.Lock()
+
+
+def _get_cross_encoder() -> BGERerankerClient:
+    """Lazy-load & share một BGERerankerClient cho cả process."""
+    global _cross_encoder
+    if _cross_encoder is None:
+        with _cross_encoder_lock:
+            if _cross_encoder is None:
+                logger.info("Loading BGE reranker (BAAI/bge-reranker-v2-m3)...")
+                _cross_encoder = BGERerankerClient()
+                logger.info("BGE reranker loaded")
+    return _cross_encoder
 
 
 def _create_graphiti() -> Graphiti:
@@ -49,13 +60,17 @@ def _create_graphiti() -> Graphiti:
     )
     embedder = OpenAIEmbedder(config=embedder_config)
 
+    # Cross-encoder reranker (BGE local) dùng cho EDGE_HYBRID_SEARCH_CROSS_ENCODER.
+    # Share một model cho cả process để khỏi load lại trên từng thread.
+    cross_encoder = _get_cross_encoder()
+
     instance = Graphiti(
         uri=Config.NEO4J_URI,
         user=Config.NEO4J_USER,
         password=Config.NEO4J_PASSWORD,
         llm_client=llm_client,
         embedder=embedder,
-        cross_encoder=NoOpCrossEncoder(),
+        cross_encoder=cross_encoder,
     )
     logger.info(
         f"Graphiti instance created for thread {threading.current_thread().name} "

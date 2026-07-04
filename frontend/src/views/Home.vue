@@ -2,9 +2,9 @@
   <div class="home-container">
     <!-- Top Navigation Bar -->
     <nav class="navbar">
-      <div class="nav-brand">MIROFISH</div>
+      <div class="nav-brand">SimPetro</div>
       <div class="nav-links">
-        <a href="https://github.com/666ghj/MiroFish" target="_blank" class="github-link">
+        <a href="https://github.com/TQuynh109/MiroFish" target="_blank" class="github-link">
           Visit our GitHub page <span class="arrow">↗</span>
         </a>
       </div>
@@ -16,7 +16,6 @@
         <div class="hero-left">
           <div class="tag-row">
             <span class="orange-tag">A concise and general-purpose collective intelligence engine</span>
-            <span class="version-text">/ v0.1 - Preview Version</span>
           </div>
           
           <h1 class="main-title">
@@ -26,7 +25,7 @@
           
           <div class="hero-desc">
             <p>
-              Even with just a piece of text, <span class="highlight-bold">MiroFish</span> can extract real-world signals and automatically generate a parallel world with up to <span class="highlight-orange">millions of agents</span>. By injecting variables from a god-like perspective, it explores <span class="highlight-code">"locally optimal solutions"</span> within complex multi-agent interactions in dynamic environments.
+              Even with just a collection of market news and analyst reports, <span class="highlight-bold">SimPetro</span> can extract real-world geopolitical and economic signals, automatically simulating an oil ecosystem with up to <span class="highlight-orange">millions of market-driven agents</span> to forecast crude oil price trends. By injecting variables from a god-like perspective, it explores <span class="highlight-code">market equilibria and emerging price trends</span> within complex multi-agent interactions in dynamic environments.
             </p>
             <p class="slogan-text">
               Let the future be rehearsed within agent swarms, and let decisions emerge after countless simulations<span class="blinking-cursor">_</span>
@@ -39,7 +38,7 @@
         <div class="hero-right">
           <!-- Logo Area -->
           <div class="logo-container">
-            <img src="../assets/logo/MiroFish_logo_left.jpeg" alt="MiroFish Logo" class="hero-logo" />
+            <img src="../assets/logo/Image.png" alt="SimPetro Logo" class="hero-logo" />
           </div>
           
           <button class="scroll-down-btn" @click="scrollToBottom">
@@ -53,12 +52,12 @@
         <!-- Left Column: Status and Steps -->
         <div class="left-panel">
           <div class="panel-header">
-            <span class="status-dot">■</span> System Status
+            <span class="status-dot">◆</span> System Status
           </div>
           
-          <h2 class="section-title">Ready</h2>
+          <h2 class="section-title"><span class="status-ping"></span>Ready</h2>
           <p class="section-desc">
-            The prediction engine is on standby. Multiple unstructured data files can be uploaded to initialize the simulation sequence.
+            The simulation engine is ready. Upload market news, geopolitical reports, or historical data to initialize the trend forecasting sequence.
           </p>
           
           <!-- Data Metric Cards -->
@@ -76,13 +75,13 @@
           <!-- Project Simulation Workflow (Added Section) -->
           <div class="steps-container">
             <div class="steps-header">
-               <span class="diamond-icon">◇</span> Workflow Sequence
+               <span class="diamond-icon">▸</span> Workflow Sequence
             </div>
             <div class="workflow-list">
               <div class="workflow-item">
                 <span class="step-num">01</span>
                 <div class="step-info">
-                  <div class="step-title">Graph Construction</div>
+                  <div class="step-title">Build Graph</div>
                   <div class="step-desc">Real-world seed extraction & individual and collective memory injection & GraphRAG construction</div>
                 </div>
               </div>
@@ -124,8 +123,8 @@
             <!-- Upload Area -->
             <div class="console-section">
               <div class="console-header">
-                <span class="console-label">01 / Real-world Seeds</span>
-                <span class="console-meta">Supported formats: PDF, MD, TXT</span>
+                <span class="console-label">01 / Market Intelligence Input</span>
+                <span class="console-meta">📰 Market News & Analytics (PDF, TXT, MD)</span>
               </div>
               
               <div 
@@ -170,17 +169,17 @@
             <!-- Input Area -->
             <div class="console-section">
               <div class="console-header">
-                <span class="console-label">>_ 02 / Simulation Prompt</span>
+                <span class="console-label">02 / Simulation Prompt</span>
               </div>
               <div class="input-wrapper">
                 <textarea
                   v-model="formData.simulationRequirement"
                   class="code-input"
-                  placeholder="Describe your simulation or prediction request in natural language (e.g. If Wuhan University announces the revocation of disciplinary action against someone, what public opinion trends would emerge?)"
+                  placeholder="Describe your simulation or prediction request in natural language (e.g., If geopolitical tensions escalate in the Strait of Hormuz and disrupt shipping lanes, how will WTI and Brent crude price trends react over the next 30 days?)"
                   rows="6"
                   :disabled="loading"
                 ></textarea>
-                <div class="model-badge">Engine: MiroFish-V1.0</div>
+                <div class="model-badge">Engine: SimPetro-v1.0</div>
               </div>
             </div>
 
@@ -197,6 +196,25 @@
               </button>
             </div>
           </div>
+
+          <!-- Select Project -->
+          <div class="project-picker">
+            <span class="picker-icon">👁</span>
+            <div class="picker-text">
+              <div class="picker-title">View — chỉ xem dữ liệu cũ</div>
+              <select v-model="pickedProjectId" class="picker-select" :disabled="projectsLoading">
+                <option :value="null" disabled>
+                  {{ projectsLoading ? 'Loading projects...' : (projects.length ? 'Choose a project' : 'No project found') }}
+                </option>
+                <option v-for="p in projects" :key="p.simulation_id" :value="p.project_id">
+                  {{ p.project_id }}
+                </option>
+              </select>
+            </div>
+            <button class="picker-go-btn" :disabled="!pickedProjectId" @click="goToStep1">
+              Go <span class="picker-arrow">→</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -207,11 +225,31 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import HistoryDatabase from '../components/HistoryDatabase.vue'
+import { getSimulationHistory } from '../api/simulation'
 
 const router = useRouter()
+
+// Project picker (jump straight to Step 1 - Build Graph)
+const projects = ref([])
+const projectsLoading = ref(false)
+const pickedProjectId = ref(null)
+
+const loadProjects = async () => {
+  projectsLoading.value = true
+  try {
+    const res = await getSimulationHistory(50)
+    if (res.success) {
+      projects.value = (res.data || []).filter(p => p.project_id)
+    }
+  } finally {
+    projectsLoading.value = false
+  }
+}
+
+onMounted(loadProjects)
 
 // Form data
 const formData = ref({
@@ -285,6 +323,22 @@ const scrollToBottom = () => {
   window.scrollTo({
     top: document.body.scrollHeight,
     behavior: 'smooth'
+  })
+}
+
+// Go straight to Step 1 (Build Graph) of the picked project
+const goToStep1 = () => {
+  if (!pickedProjectId.value) return
+  const picked = projects.value.find(p => p.project_id === pickedProjectId.value)
+  router.push({
+    name: 'Process',
+    params: { projectId: pickedProjectId.value },
+    query: {
+      preview: '1',
+      projectId: pickedProjectId.value,
+      simulationId: picked?.simulation_id || '',
+      reportId: picked?.report_id || ''
+    }
   })
 }
 
@@ -566,12 +620,58 @@ const startSimulation = () => {
 .status-dot {
   color: var(--orange);
   font-size: 0.8rem;
+  animation: status-dot-pulse 2s ease-in-out infinite;
+}
+
+@keyframes status-dot-pulse {
+  0%, 100% {
+    opacity: 1;
+    text-shadow: 0 0 4px var(--orange);
+  }
+  50% {
+    opacity: 0.35;
+    text-shadow: none;
+  }
 }
 
 .section-title {
   font-size: 2rem;
   font-weight: 520;
   margin: 0 0 15px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-ping {
+  position: relative;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  flex-shrink: 0;
+}
+
+.status-ping::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-color: #22c55e;
+  animation: status-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes status-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  75%, 100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
 }
 
 .section-desc {
@@ -622,27 +722,71 @@ const startSimulation = () => {
 }
 
 .diamond-icon {
-  font-size: 1.2rem;
+  font-size: 1rem;
   line-height: 1;
+  color: var(--orange);
 }
 
 .workflow-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 8px;
+  position: relative;
+}
+
+/* Vertical timeline spine running through the step markers */
+.workflow-list::before {
+  content: '';
+  position: absolute;
+  left: 27px;
+  top: 26px;
+  bottom: 26px;
+  width: 2px;
+  background: var(--border);
+  z-index: 0;
 }
 
 .workflow-item {
   display: flex;
   align-items: flex-start;
   gap: 20px;
+  position: relative;
+  z-index: 1;
+  padding: 12px 14px;
+  border-radius: 6px;
+  border-left: 2px solid transparent;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.workflow-item:hover {
+  background: rgba(255, 69, 0, 0.05);
+  border-left-color: var(--orange);
+  transform: translateX(4px);
 }
 
 .step-num {
   font-family: var(--font-mono);
   font-weight: 700;
-  color: var(--black);
-  opacity: 0.3;
+  font-size: 0.85rem;
+  color: var(--gray-text);
+  opacity: 0.55;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: #fff;
+  transition: color 0.25s ease, border-color 0.25s ease, opacity 0.25s ease, box-shadow 0.25s ease;
+}
+
+.workflow-item:hover .step-num {
+  color: var(--orange);
+  border-color: var(--orange);
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(255, 69, 0, 0.4);
 }
 
 .step-info {
@@ -653,6 +797,11 @@ const startSimulation = () => {
   font-weight: 520;
   font-size: 1rem;
   margin-bottom: 4px;
+  transition: color 0.25s ease;
+}
+
+.workflow-item:hover .step-title {
+  color: var(--orange);
 }
 
 .step-desc {
@@ -663,6 +812,83 @@ const startSimulation = () => {
 /* Right interactive console */
 .right-panel {
   flex: 1.2;
+}
+
+.project-picker {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 16px 20px;
+  border: 1px solid var(--orange);
+  background: rgba(255, 69, 0, 0.05);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.project-picker:hover {
+  background: rgba(255, 69, 0, 0.1);
+  transform: translateX(4px);
+}
+
+.picker-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.picker-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.picker-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.picker-select {
+  width: 100%;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--black);
+}
+
+.picker-go-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: var(--black);
+  color: var(--white);
+  border: 1px solid var(--black);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.picker-go-btn:hover:not(:disabled) {
+  background: var(--orange);
+  border-color: var(--orange);
+}
+
+.picker-go-btn:disabled {
+  background: #E5E5E5;
+  color: #999;
+  border-color: #E5E5E5;
+  cursor: not-allowed;
+}
+
+.picker-arrow {
+  font-size: 1rem;
 }
 
 .console-box {

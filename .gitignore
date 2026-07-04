@@ -48,6 +48,7 @@ htmlcov/
 # Tài liệu và chương trình kiểm thử
 mydoc/
 mytest/
+test_code_backend/
 
 # File log
 backend/logs/
@@ -55,6 +56,7 @@ backend/logs/
 
 # File tải lên
 backend/uploads/
+**/*uploads*/
 
 # Dữ liệu Docker
 data/

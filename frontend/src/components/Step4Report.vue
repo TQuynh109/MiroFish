@@ -1,7 +1,7 @@
 <template>
   <div class="report-panel">
     <!-- Main Split Layout -->
-    <div class="main-split-layout">
+    <div class="main-split-layout" :class="{ 'report-only': reportOnly }">
       <!-- LEFT PANEL: Report Style -->
       <div class="left-panel report-style" ref="leftPanel">
         <div v-if="reportOutline" class="report-content-wrapper">
@@ -30,7 +30,7 @@
             >
               <div class="section-header-row" @click="toggleSectionCollapse(idx)" :class="{ 'clickable': isSectionCompleted(idx + 1) }">
                 <span class="section-number">{{ String(idx + 1).padStart(2, '0') }}</span>
-                <h3 class="section-title">{{ section.title }}</h3>
+                <h3 class="section-title">{{ formatSectionTitle(section.title) }}</h3>
                 <svg 
                   v-if="isSectionCompleted(idx + 1)" 
                   class="collapse-icon" 
@@ -77,7 +77,7 @@
       </div>
 
       <!-- RIGHT PANEL: Workflow Timeline -->
-      <div class="right-panel" ref="rightPanel">
+      <div class="right-panel" ref="rightPanel" v-if="!reportOnly">
         <div class="panel-header" :class="`panel-header--${activeStep.status}`" v-if="!isComplete">
           <span class="header-dot" v-if="activeStep.status === 'active'"></span>
           <span class="header-index mono">{{ activeStep.noLabel }}</span>
@@ -375,7 +375,7 @@
     </div>
 
     <!-- Bottom Console Logs -->
-    <div class="console-logs">
+    <div class="console-logs" v-if="!reportOnly">
       <div class="log-header">
         <span class="log-title">CONSOLE OUTPUT</span>
         <span class="log-id">{{ reportId || 'NO_REPORT' }}</span>
@@ -399,7 +399,8 @@ const router = useRouter()
 const props = defineProps({
   reportId: String,
   simulationId: String,
-  systemLogs: Array
+  systemLogs: Array,
+  reportOnly: { type: Boolean, default: false } // Chỉ hiện nội dung report, ẩn panel workflow timeline (dùng cho popup)
 })
 
 const emit = defineEmits(['add-log', 'update-status'])
@@ -1053,28 +1054,28 @@ const InsightDisplay = {
         activeTab.value === 'entities' && props.result.entities.length > 0 && h('div', { class: 'entities-panel' }, [
           h('div', { class: 'panel-header' }, [
   h('span', { class: 'panel-title' }, 'Core Entities'),
-            h('span', { class: 'panel-count' }, `共 ${props.result.entities.length} 个`)
+            h('span', { class: 'panel-count' }, `${props.result.entities.length} total`)
           ]),
           h('div', { class: 'entities-grid' },
             (expandedEntities.value ? props.result.entities : props.result.entities.slice(0, 12)).map((entity, i) => 
               h('div', { class: 'entity-tag', key: i, title: entity.summary || '' }, [
                 h('span', { class: 'entity-name' }, entity.name),
                 h('span', { class: 'entity-type' }, entity.type),
-                entity.relatedFactsCount > 0 && h('span', { class: 'entity-fact-count' }, `${entity.relatedFactsCount}条`)
+                entity.relatedFactsCount > 0 && h('span', { class: 'entity-fact-count' }, `${entity.relatedFactsCount} facts`)
               ])
             )
           ),
           props.result.entities.length > 12 && h('button', {
             class: 'expand-btn',
             onClick: () => { expandedEntities.value = !expandedEntities.value }
-          }, expandedEntities.value ? `收起 ▲` : `展开全部 ${props.result.entities.length} 个 ▼`)
+          }, expandedEntities.value ? `Collapse ▲` : `Show all ${props.result.entities.length} ▼`)
         ]),
         
         // Relations Tab
         activeTab.value === 'relations' && props.result.relations.length > 0 && h('div', { class: 'relations-panel' }, [
           h('div', { class: 'panel-header' }, [
-            h('span', { class: 'panel-title' }, '关系链'),
-            h('span', { class: 'panel-count' }, `共 ${props.result.relations.length} 条`)
+            h('span', { class: 'panel-title' }, 'Relation Chains'),
+            h('span', { class: 'panel-count' }, `${props.result.relations.length} total`)
           ]),
           h('div', { class: 'relations-list' },
             (expandedRelations.value ? props.result.relations : props.result.relations.slice(0, INITIAL_SHOW_COUNT)).map((rel, i) => 
@@ -1092,14 +1093,14 @@ const InsightDisplay = {
           props.result.relations.length > INITIAL_SHOW_COUNT && h('button', {
             class: 'expand-btn',
             onClick: () => { expandedRelations.value = !expandedRelations.value }
-          }, expandedRelations.value ? `收起 ▲` : `展开全部 ${props.result.relations.length} 条 ▼`)
+          }, expandedRelations.value ? `Collapse ▲` : `Show all ${props.result.relations.length} ▼`)
         ]),
         
         // Sub-queries Tab
         activeTab.value === 'subqueries' && props.result.subQueries.length > 0 && h('div', { class: 'subqueries-panel' }, [
           h('div', { class: 'panel-header' }, [
-            h('span', { class: 'panel-title' }, '漂移查询生成分析子问题'),
-            h('span', { class: 'panel-count' }, `共 ${props.result.subQueries.length} 个`)
+            h('span', { class: 'panel-title' }, 'Drift Query Generated Analysis Sub-questions'),
+            h('span', { class: 'panel-count' }, `${props.result.subQueries.length} total`)
           ]),
           h('div', { class: 'subqueries-list' },
             props.result.subQueries.map((sq, i) => 
@@ -1112,9 +1113,9 @@ const InsightDisplay = {
         ]),
         
         // Empty state
-        activeTab.value === 'facts' && props.result.facts.length === 0 && h('div', { class: 'empty-state' }, '暂无当前关键记忆'),
-        activeTab.value === 'entities' && props.result.entities.length === 0 && h('div', { class: 'empty-state' }, '暂无核心实体'),
-        activeTab.value === 'relations' && props.result.relations.length === 0 && h('div', { class: 'empty-state' }, '暂无关系链')
+        activeTab.value === 'facts' && props.result.facts.length === 0 && h('div', { class: 'empty-state' }, 'No key memories yet'),
+        activeTab.value === 'entities' && props.result.entities.length === 0 && h('div', { class: 'empty-state' }, 'No core entities yet'),
+        activeTab.value === 'relations' && props.result.relations.length === 0 && h('div', { class: 'empty-state' }, 'No relation chains yet')
       ])
     ])
   }
@@ -1857,12 +1858,185 @@ const truncateText = (text, maxLen) => {
   return text.substring(0, maxLen) + '...'
 }
 
+// Chuẩn hoá tiêu đề section: "Vài Ngày Sắp Tới" / "Vài ngày tới" -> "4 Ngày Tới"
+const formatSectionTitle = (title) => {
+  if (!title) return title
+  return title.replace(/Vài\s+[Nn]gày\s+(Sắp\s+[Tt]ới|[Tt]ới)/g, '4 Ngày Tới')
+}
+
+// Badge màu cho kịch bản giá (TĂNG -> xanh lá, GIẢM -> đỏ, ĐI NGANG/còn lại -> xám)
+const getScenarioBadgeClass = (text) => {
+  const t = (text || '').toUpperCase()
+  if (t.includes('GIẢM')) return 'badge-down'
+  if (t.includes('TĂNG')) return 'badge-up'
+  return 'badge-flat'
+}
+
+// Badge màu cho mức độ tin cậy (Cao -> xanh lá, Trung bình -> vàng cam, Thấp -> đỏ nhạt)
+const getConfidenceBadgeClass = (text) => {
+  const t = (text || '').toLowerCase()
+  if (t.includes('cao')) return 'badge-up'
+  if (t.includes('thấp')) return 'badge-down'
+  return 'badge-warning'
+}
+
+// Parse nội dung blockquote "Kết luận dự đoán" thành các field ngữ nghĩa (kịch bản, target range,
+// độ tin cậy, trigger, tín hiệu ủng hộ, rủi ro ngược chiều) để render dạng badge/layout thay vì
+// text thuần xen kẽ như markdown gốc.
+const buildPredictionConclusionHtml = (label, leadingText, quoteLines) => {
+  const rawLines = quoteLines
+    .split('\n')
+    .map(line => line.replace(/^>\s?/, ''))
+    .filter(line => line.trim().length > 0)
+
+  const stripBold = (s) => (s || '').replace(/\*\*(.+?)\*\*/g, '$1').trim()
+
+  let scenario = ''
+  let targetRange = ''
+  let confidence = ''
+  let trigger = ''
+  const upSignals = []
+  const downRisks = []
+  let currentBucket = null // 'up' | 'down'
+
+  rawLines.forEach(line => {
+    const plain = stripBold(line)
+
+    const scenarioMatch = plain.match(/^Kịch bản giá dầu Brent vài ngày tới so với hiện tại:\s*(.+)$/i)
+    const targetMatch = plain.match(/^Khoảng giá dự phóng \(Target Range\):\s*(.+)$/i)
+    const confidenceMatch = plain.match(/^Mức độ tin cậy:\s*(.+)$/i)
+    const triggerMatch = plain.match(/^Sự kiện kích hoạt \(Trigger\):\s*(.+)$/i)
+
+    if (scenarioMatch) {
+      scenario = scenarioMatch[1].trim()
+      currentBucket = null
+      return
+    }
+    if (targetMatch) {
+      // Bỏ dấu ngoặc vuông bao quanh số (một số report LLM sinh ra dạng "$ [99.50]")
+      targetRange = targetMatch[1].trim().replace(/\[(.+?)\]/g, '$1')
+      currentBucket = null
+      return
+    }
+    if (confidenceMatch) {
+      confidence = confidenceMatch[1].trim()
+      currentBucket = null
+      return
+    }
+    if (triggerMatch) {
+      trigger = triggerMatch[1].trim()
+      currentBucket = null
+      return
+    }
+    if (/^Tín hiệu ủng hộ:?\s*$/i.test(plain)) {
+      currentBucket = 'up'
+      return
+    }
+    if (/^Rủi ro ngược chiều:?\s*$/i.test(plain)) {
+      currentBucket = 'down'
+      return
+    }
+
+    // Dòng "Tín hiệu ủng hộ: nội dung..." / "Rủi ro ngược chiều: nội dung..." trên cùng 1 dòng
+    const inlineUp = plain.match(/^Tín hiệu ủng hộ:\s*(.+)$/i)
+    if (inlineUp) {
+      upSignals.push(inlineUp[1].trim())
+      currentBucket = 'up'
+      return
+    }
+    const inlineDown = plain.match(/^Rủi ro ngược chiều:\s*(.+)$/i)
+    if (inlineDown) {
+      downRisks.push(inlineDown[1].trim())
+      currentBucket = 'down'
+      return
+    }
+
+    // Dòng bullet (*   text) hoặc text thường thuộc bucket hiện tại
+    const bulletText = plain.replace(/^\*\s{1,}/, '').trim()
+    if (currentBucket === 'up') {
+      // Nếu bucket đang mở nhưng nội dung có nhiều câu nối bằng dấu phẩy (dạng gộp 1 dòng), tách nhỏ
+      bulletText.split(/(?<=[.;])\s+(?=[A-ZÀ-Ỹ])/).forEach(part => {
+        if (part.trim()) upSignals.push(part.trim())
+      })
+    } else if (currentBucket === 'down') {
+      bulletText.split(/(?<=[.;])\s+(?=[A-ZÀ-Ỹ])/).forEach(part => {
+        if (part.trim()) downRisks.push(part.trim())
+      })
+    }
+  })
+
+  // Tách phần ghi chú trong ngoặc (nếu có) ra khỏi giá trị chính, để badge chỉ hiện phần cốt lõi
+  const splitNote = (text) => {
+    const m = (text || '').match(/^(.*?)\s*(\(.+\))\s*$/)
+    return m ? { main: m[1].trim(), note: m[2] } : { main: (text || '').trim(), note: '' }
+  }
+  const scenarioParts = splitNote(scenario)
+  const confidenceParts = splitNote(confidence)
+  const targetRangeParts = splitNote(targetRange)
+
+  const scenarioBadge = scenarioParts.main
+    ? `<span class="mc-badge ${getScenarioBadgeClass(scenarioParts.main)}">${scenarioParts.main}</span>${scenarioParts.note ? `<span class="mc-key-note">${scenarioParts.note}</span>` : ''}`
+    : ''
+  const confidenceBadge = confidenceParts.main
+    ? `<span class="mc-badge ${getConfidenceBadgeClass(confidenceParts.main)}">${confidenceParts.main}</span>${confidenceParts.note ? `<span class="mc-key-note">${confidenceParts.note}</span>` : ''}`
+    : ''
+
+  const leadingHtml = leadingText && leadingText.trim()
+    ? `<p class="mc-leading">${stripBold(leadingText.trim())}</p>`
+    : ''
+
+  const listHtml = (items) => items.map(i => `<li>${i}</li>`).join('')
+
+  return `
+    <div class="prediction-conclusion-box">
+      <div class="prediction-conclusion-title">${label}</div>
+      ${leadingHtml}
+      <div class="mc-key-row">
+        <div class="mc-key-item">
+          <span class="mc-key-label">Kịch bản giá dầu WTI trong 4 ngày </span>
+          ${scenarioBadge}
+        </div>
+        <div class="mc-key-item">
+          <span class="mc-key-label">Mức độ tin cậy</span>
+          ${confidenceBadge}
+        </div>
+      </div>
+      ${targetRangeParts.main ? `<div class="mc-target-range"><span class="mc-key-label">Khoảng giá dự đoán</span><span class="mc-target-value">${targetRangeParts.main}</span></div>` : ''}
+      ${trigger ? `<div class="mc-trigger"><span class="mc-key-label">Sự kiện kích hoạt</span><p class="mc-trigger-text">${trigger}</p></div>` : ''}
+      ${(upSignals.length || downRisks.length) ? `
+      <div class="mc-divider"></div>
+      <div class="mc-columns">
+        <div class="mc-column mc-column-up">
+          <div class="mc-column-title mc-column-title-up">Tín hiệu ủng hộ</div>
+          <ul class="mc-column-list">${listHtml(upSignals)}</ul>
+        </div>
+        <div class="mc-column mc-column-down">
+          <div class="mc-column-title mc-column-title-down">Rủi ro ngược chiều</div>
+          <ul class="mc-column-list">${listHtml(downRisks)}</ul>
+        </div>
+      </div>` : ''}
+    </div>
+  `
+}
+
 const renderMarkdown = (content) => {
   if (!content) return ''
-  
+
   // Loại bỏ tiêu đề cấp 2 ở đầu (## xxx), vì tiêu đề chương đã được hiển thị bên ngoài
   let processedContent = content.replace(/^##\s+.+\n+/, '')
-  
+
+  // Tách riêng khối "Kết luận dự đoán" (dòng in đậm đứng riêng, có thể kèm 1 đoạn văn dẫn nhập,
+  // rồi tới các dòng blockquote) để parse thành field ngữ nghĩa và bọc trong 1 box nổi bật
+  const predictionBlocks = []
+  processedContent = processedContent.replace(
+    /\*\*(Kết luận dự đoán)\*\*\n+((?:(?!^>).+\n+)?)((?:^>.*\n?)+)/gm,
+    (match, label, leadingText, quoteLines) => {
+      const token = `\n\nPREDICTIONBLOCKMARKER${predictionBlocks.length}\n\n`
+      predictionBlocks.push(buildPredictionConclusionHtml(label, leadingText, quoteLines))
+      return token
+    }
+  )
+
   // Xử lý code block
   let html = processedContent.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre class="code-block"><code>$2</code></pre>')
   
@@ -1958,6 +2132,11 @@ const renderMarkdown = (content) => {
     }
   }
   html = tokens.join('')
+
+  // Khôi phục lại khối "Kết luận dự đoán" đã tách ra ở bước đầu (thay token bằng HTML thật)
+  predictionBlocks.forEach((blockHtml, i) => {
+    html = html.replace(new RegExp(`<p class="md-p">\\s*PREDICTIONBLOCKMARKER${i}\\s*</p>|PREDICTIONBLOCKMARKER${i}`), blockHtml)
+  })
 
   return html
 }
@@ -2318,6 +2497,13 @@ watch(() => props.reportId, (newId) => {
   padding: 30px 50px 60px 50px;
 }
 
+/* Chỉ hiện nội dung report (dùng cho popup), ẩn panel workflow timeline bên phải */
+.main-split-layout.report-only .left-panel.report-style {
+  width: 100%;
+  min-width: 0;
+  border-right: none;
+}
+
 .left-panel::-webkit-scrollbar {
   width: 6px;
 }
@@ -2519,6 +2705,195 @@ watch(() => props.reportId, (newId) => {
   color: #6B7280;
   font-style: italic;
   font-family: 'Times New Roman', Times, serif;
+}
+
+/* ===== Kết luận dự đoán: box nổi bật, ngữ nghĩa hoá bằng badge + layout 2 cột ===== */
+.generated-content :deep(.prediction-conclusion-box) {
+  background: #fff4fa;
+  border: 1px solid #f8f7f8;
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin: 1.8em 0;
+}
+
+.generated-content :deep(.prediction-conclusion-title) {
+  font-family: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1E293B;
+  margin-bottom: 14px;
+}
+
+.generated-content :deep(.mc-leading) {
+  font-family: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  font-style: normal;
+  color: #374151;
+  margin: 0 0 14px 0;
+  line-height: 1.7;
+}
+
+.generated-content :deep(.mc-key-row) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 14px;
+}
+
+.generated-content :deep(.mc-key-item) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.generated-content :deep(.mc-key-label) {
+  font-family: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6B7280;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.generated-content :deep(.mc-key-note) {
+  font-size: 12px;
+  color: #9CA3AF;
+  font-style: italic;
+  flex-basis: 100%;
+  margin-left: 0;
+}
+
+/* Badge (thẻ trạng thái) dùng chung cho Kịch bản / Mức độ tin cậy */
+.generated-content :deep(.mc-badge) {
+  display: inline-block;
+  font-family: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 4px;
+  line-height: 1.5;
+}
+
+.generated-content :deep(.mc-badge.badge-up) {
+  background: #DCFCE7;
+  color: #15803D;
+}
+
+.generated-content :deep(.mc-badge.badge-down) {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+.generated-content :deep(.mc-badge.badge-flat) {
+  background: #F1F5F9;
+  color: #475569;
+}
+
+.generated-content :deep(.mc-badge.badge-warning) {
+  background: #FEF3C7;
+  color: #B45309;
+}
+
+.generated-content :deep(.mc-target-range) {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.generated-content :deep(.mc-target-value) {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 400;
+  color: #1E293B;
+}
+
+.generated-content :deep(.mc-trigger) {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.generated-content :deep(.mc-trigger-text) {
+  font-family: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  font-size: 13px;
+  color: #374151;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.generated-content :deep(.mc-divider) {
+  border-bottom: 1px solid #E0E0E0;
+  margin: 16px 0;
+}
+
+.generated-content :deep(.mc-columns) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 640px) {
+  .generated-content :deep(.mc-columns) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.generated-content :deep(.mc-column-title) {
+  font-family: 'Inter', 'Noto Sans SC', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.generated-content :deep(.mc-column-title-up) { color: #15803D; }
+.generated-content :deep(.mc-column-title-down) { color: #C2410C; }
+
+.generated-content :deep(.mc-column-list) {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.generated-content :deep(.mc-column-list li) {
+  position: relative;
+  padding-left: 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #374151;
+}
+
+.generated-content :deep(.mc-column-up .mc-column-list li)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #22C55E;
+}
+
+.generated-content :deep(.mc-column-down .mc-column-list li)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #F97316;
 }
 
 .generated-content :deep(.code-block) {
@@ -5088,7 +5463,7 @@ watch(() => props.reportId, (newId) => {
   border-radius: 4px;
 }
 
-/* Console Logs - 与 Step3Simulation.vue 保持一致 */
+/* Console Logs - kept consistent with Step3Simulation.vue */
 .console-logs {
   background: #000;
   color: #DDD;

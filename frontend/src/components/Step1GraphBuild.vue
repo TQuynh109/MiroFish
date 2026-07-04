@@ -122,7 +122,7 @@
         <div class="card-content">
           <p class="api-note">POST /api/graph/build</p>
           <p class="description">
-            Based on the generated ontology, documents are automatically chunked and Zep is used to build the knowledge graph, extract entities and relationships, and generate temporal memory and community summaries
+            Based on the generated ontology, documents are automatically chunked and Graphiti is used to build the knowledge graph, extract entities and relationships, and generate temporal memory and community summaries
           </p>
           
           <!-- Stats Cards -->

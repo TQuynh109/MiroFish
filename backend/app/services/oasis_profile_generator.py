@@ -242,7 +242,6 @@ class OasisProfileGenerator:
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         model_name: Optional[str] = None,
-        zep_api_key: Optional[str] = None,
         graph_id: Optional[str] = None
     ):
         # --- Khởi tạo OpenAI client (dùng để gọi LLM sinh persona) ---
@@ -267,8 +266,6 @@ class OasisProfileGenerator:
         # --- Cấu hình graph search (dùng để bổ sung context cho entity) ---
         # graph_id được truyền vào từ simulation_manager để tất cả search đều
         # trỏ đúng vào graph (group_id) của simulation hiện tại.
-        # zep_api_key giữ lại trong chữ ký để tương thích caller cũ, không còn dùng.
-        self.zep_api_key = zep_api_key
         self.graph_id = graph_id
 
         # graph search là tính năng bổ sung, chỉ bật khi Neo4j được cấu hình.

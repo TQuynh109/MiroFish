@@ -3,21 +3,23 @@
     <!-- Header -->
     <header class="app-header">
       <div class="header-left">
-        <div class="brand" @click="router.push('/')">MIROFISH</div>
+        <div class="brand" @click="router.push('/')">SIMPETRO</div>
       </div>
       
       <div class="header-center">
+        <PreviewNav inline side="prev" />
         <div class="view-switcher">
-          <button 
-            v-for="mode in ['graph', 'split', 'workbench']" 
+          <button
+            v-for="mode in ['graph', 'split', 'workbench']"
             :key="mode"
             class="switch-btn"
             :class="{ active: viewMode === mode }"
             @click="viewMode = mode"
           >
-            {{ { graph: 'Graph', split: 'Split', workbench: 'Workbench' }[mode] }}
+            {{ { graph: 'Knowledge Graph', split: 'Split View', workbench: 'Workspace'}[mode] }}
           </button>
         </div>
+        <PreviewNav inline side="next" />
       </div>
 
       <div class="header-right">
@@ -53,6 +55,7 @@
           :projectData="projectData"
           :graphData="graphData"
           :systemLogs="systemLogs"
+          :previewOnly="previewOnly"
           @go-back="handleGoBack"
           @next-step="handleNextStep"
           @add-log="addLog"
@@ -68,6 +71,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import GraphPanel from '../components/GraphPanel.vue'
 import Step2EnvSetup from '../components/Step2EnvSetup.vue'
+import PreviewNav from '../components/PreviewNav.vue'
 import { getProject, getGraphData } from '../api/graph'
 import { getSimulation, stopSimulation, getEnvStatus, closeSimulationEnv } from '../api/simulation'
 
@@ -80,7 +84,10 @@ const props = defineProps({
 })
 
 // Layout State
-const viewMode = ref('split')
+const viewMode = ref('workbench')
+
+// Preview mode: chỉ load cấu hình đã chuẩn bị, không gọi prepare / không đóng env (?preview=1)
+const previewOnly = ref(route.query.preview === '1' || route.query.preview === 'true')
 
 // Data State
 const currentSimulationId = ref(route.params.simulationId)
@@ -288,10 +295,13 @@ const refreshGraph = () => {
 
 onMounted(async () => {
   addLog('SimulationView initialized')
-  
-  // Kiem tra va dong simulation dang chay (khi nguoi dung quay ve tu Step 3)
-  await checkAndStopRunningSimulation()
-  
+
+  // Preview mode: KHÔNG đóng/stop simulation đang chạy, chỉ đọc dữ liệu
+  if (!previewOnly.value) {
+    // Kiem tra va dong simulation dang chay (khi nguoi dung quay ve tu Step 3)
+    await checkAndStopRunningSimulation()
+  }
+
   // Tai du lieu simulation
   loadSimulationData()
 })
@@ -332,6 +342,9 @@ onMounted(async () => {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .view-switcher {

@@ -3,21 +3,26 @@
     <!-- Header -->
     <header class="app-header">
       <div class="header-left">
-        <div class="brand" @click="router.push('/')">MIROFISH</div>
+        <div class="brand" @click="router.push('/')">SIMPETRO</div>
       </div>
       
       <div class="header-center">
+        <PreviewNav inline side="prev" />
         <div class="view-switcher">
-          <button 
-            v-for="mode in ['graph', 'split', 'workbench']" 
+          <button
+            v-for="mode in ['graph', 'split', 'workbench']"
             :key="mode"
             class="switch-btn"
-            :class="{ active: viewMode === mode }"
+            :class="{ active: !isReportModalOpen && viewMode === mode }"
             @click="viewMode = mode"
           >
-            {{ { graph: 'Graph', split: 'Split', workbench: 'Workbench' }[mode] }}
+            {{ { graph: 'Knowledge Graph', split: 'Split View', workbench: 'Workspace' }[mode] }}
+          </button>
+          <button class="switch-btn" :class="{ active: isReportModalOpen }" @click="openReportModal">
+            Report
           </button>
         </div>
+        <PreviewNav inline side="next" />
       </div>
 
       <div class="header-right">
@@ -58,6 +63,26 @@
         />
       </div>
     </main>
+
+    <!-- Report Popup Modal -->
+    <div v-if="isReportModalOpen" class="report-modal-overlay" @click.self="closeReportModal">
+      <div class="report-modal-panel">
+        <div class="report-modal-header">
+          <span class="report-modal-title">Report</span>
+          <button class="report-modal-close" @click="closeReportModal">✕</button>
+        </div>
+        <div class="report-modal-body">
+          <Step4Report
+            :reportId="currentReportId"
+            :simulationId="simulationId"
+            :systemLogs="systemLogs"
+            :reportOnly="true"
+            @add-log="addLog"
+            @update-status="updateStatus"
+          />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -66,6 +91,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import GraphPanel from '../components/GraphPanel.vue'
 import Step4Report from '../components/Step4Report.vue'
+import PreviewNav from '../components/PreviewNav.vue'
 import { getProject, getGraphData } from '../api/graph'
 import { getSimulation } from '../api/simulation'
 import { getReport } from '../api/report'
@@ -80,6 +106,15 @@ const props = defineProps({
 
 // Layout State - Default to Workbench view
 const viewMode = ref('workbench')
+const isReportModalOpen = ref(false)
+
+const openReportModal = () => {
+  isReportModalOpen.value = true
+}
+
+const closeReportModal = () => {
+  isReportModalOpen.value = false
+}
 
 // Data State
 const currentReportId = ref(route.params.reportId)
@@ -238,6 +273,9 @@ onMounted(() => {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .brand {
@@ -343,5 +381,66 @@ onMounted(() => {
 
 .panel-wrapper.left {
   border-right: 1px solid #EAEAEA;
+}
+
+/* Report Popup Modal */
+.report-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.report-modal-panel {
+  background: #FFF;
+  width: 90%;
+  max-width: 1100px;
+  height: 88vh;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.report-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid #EAEAEA;
+  flex-shrink: 0;
+}
+
+.report-modal-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.report-modal-close {
+  border: none;
+  background: #F5F5F5;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+}
+
+.report-modal-close:hover {
+  background: #FF4500;
+  color: #FFF;
+}
+
+.report-modal-body {
+  flex: 1;
+  overflow-y: auto;
 }
 </style>

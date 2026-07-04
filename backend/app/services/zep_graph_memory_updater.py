@@ -229,17 +229,14 @@ class ZepGraphMemoryUpdater:
     MAX_RETRIES = 3
     RETRY_DELAY = 2  # giây
     
-    def __init__(self, graph_id: str, api_key: Optional[str] = None):
+    def __init__(self, graph_id: str):
         """
         Khởi tạo trình cập nhật
 
         Args:
             graph_id: group_id của đồ thị Graphiti (Neo4j)
-            api_key: giữ lại trong chữ ký để tương thích caller cũ, không còn dùng
-                     (Graphiti lấy cấu hình Neo4j + LLM qua get_graphiti()).
         """
         self.graph_id = graph_id
-        self.api_key = api_key
 
         # Graphiti instance lấy lazy per-thread qua get_graphiti() trong _send_batch_activities,
         # không khởi tạo client ở đây để tránh chia sẻ event loop giữa các thread.

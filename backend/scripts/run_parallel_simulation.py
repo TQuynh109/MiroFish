@@ -943,12 +943,21 @@ def _enrich_action_context(
                     action_args['comment_author_name'] = comment_info.get('author_name', '')
 
         elif action_type == 'CREATE_COMMENT':
-            post_id = action_args.get('post_id')
-            if post_id:
-                post_info = _get_post_info(cursor, post_id, agent_names)
-                if post_info:
-                    action_args['post_content'] = post_info.get('content', '')
-                    action_args['post_author_name'] = post_info.get('author_name', '')
+            # OASIS chỉ lưu comment_id trong action_args, không có post_id trực tiếp
+            # → phải tra bảng comment để lấy post_id của bài được comment vào
+            comment_id = action_args.get('comment_id')
+            if comment_id:
+                cursor.execute("""
+                    SELECT post_id FROM comment WHERE comment_id = ?
+                """, (comment_id,))
+                row = cursor.fetchone()
+                if row and row[0]:
+                    post_id = row[0]
+                    action_args['post_id'] = post_id
+                    post_info = _get_post_info(cursor, post_id, agent_names)
+                    if post_info:
+                        action_args['post_content'] = post_info.get('content', '')
+                        action_args['post_author_name'] = post_info.get('author_name', '')
 
     except Exception as e:
         pass  # Enrich thất bại không ảnh hưởng luồng chính
@@ -1337,7 +1346,7 @@ async def run_twitter_simulation(
     result.env = oasis.make(
         agent_graph=result.agent_graph,
         platform=twitter_platform,
-        semaphore=30,
+        semaphore=128,
     )
 
     await result.env.reset()
