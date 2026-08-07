@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="/home/anman/intern/quynhht/MiroFish/static/figs/SimPetro_logo_compressed.jpeg" alt="SimPetro Logo" width="75%"/>
+<img src="./static/figs/SimPetro_logo_compressed.jpeg" alt="SimPetro Logo" width="75%"/>
 
 A Simple and Universal Swarm Intelligence Engine, Predicting Anything
 
-<a href="https://www.shanda.com/" target="_blank"><img src="/home/anman/intern/quynhht/MiroFish/static/figs/shanda_logo.png" alt="Shanda" height="40"/></a>
+<a href="https://www.shanda.com/" target="_blank"><img src="./static/figs/shanda_logo.png" alt="Shanda" height="40"/></a>
 
 </div>
 
