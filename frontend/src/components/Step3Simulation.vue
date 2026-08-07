@@ -339,7 +339,8 @@ import {
   stopSimulation,
   getRunStatus,
   getRunStatusDetail,
-  getSimulationActions
+  getSimulationActions,
+  getSimulationActionsPreview
 } from '../api/simulation'
 import { generateReport } from '../api/report'
 
@@ -647,6 +648,8 @@ const fetchRunStatusDetail = async () => {
 // Preview: load action cũ theo từng trang (phân trang) để tránh kéo toàn bộ 1 lần.
 // Backend /actions trả { count, actions }; còn dữ liệu khi count === PAGE_SIZE.
 const PAGE_SIZE = 200
+// Ở chế độ preview, mỗi action_type chỉ cần tối đa 1 số lượng mẫu để xem nhanh
+const PREVIEW_SAMPLES_PER_TYPE = 20
 const isLoadingActions = ref(false)
 
 const appendActions = (serverActions) => {
@@ -659,10 +662,40 @@ const appendActions = (serverActions) => {
   })
 }
 
+// Thử đọc file mẫu đã sinh sẵn ở backend (nhanh, 1 request). Trả về true nếu có dữ liệu.
+const loadActionsFromPreviewSample = async () => {
+  try {
+    const res = await getSimulationActionsPreview(props.simulationId)
+    const batch = res?.data?.actions || []
+    if (!res.success || batch.length === 0) return false
+    appendActions(batch)
+    addLog(`✓ Loaded ${allActions.value.length} sample actions (preview file, max ${PREVIEW_SAMPLES_PER_TYPE}/type)`)
+    phase.value = 2
+    emit('update-status', 'completed')
+    return true
+  } catch (err) {
+    addLog(`Preview sample not available, falling back to paged load: ${err.message}`)
+    return false
+  }
+}
+
+// chỉ phân trang toàn bộ actions.jsonl khi simulation cũ chưa có file mẫu.
+const loadPreviewActions = async () => {
+  const loadedFromSample = await loadActionsFromPreviewSample()
+  if (!loadedFromSample) {
+    await loadActionsPaged()
+  }
+}
+
+// Fallback: simulation cũ chưa có file mẫu → phân trang qua toàn bộ actions.jsonl rồi tự cắt mẫu.
 const loadActionsPaged = async () => {
   if (!props.simulationId) return
   isLoadingActions.value = true
   let offset = 0
+  // Đếm mẫu riêng theo từng platform (Twitter/Reddit hiển thị tách biệt trên UI)
+  const sampleKey = (action) => `${action.platform || 'UNKNOWN'}:${action.action_type || 'UNKNOWN'}`
+  const sampleCounts = {}
+  const hasEnoughSamples = (action) => (sampleCounts[sampleKey(action)] || 0) >= PREVIEW_SAMPLES_PER_TYPE
   try {
     // get_actions sort timestamp giảm dần → nạp ngược để allActions cuối cùng theo thứ tự thời gian tăng dần
     const pages = []
@@ -671,15 +704,28 @@ const loadActionsPaged = async () => {
       if (!res.success || !res.data) break
       const batch = res.data.actions || []
       pages.push(batch)
+      batch.forEach(action => {
+        const key = sampleKey(action)
+        sampleCounts[key] = (sampleCounts[key] || 0) + 1
+      })
       addLog(`Loaded ${offset + batch.length} actions...`)
       if (batch.length < PAGE_SIZE) break
+      // Dừng sớm khi mọi (platform, action_type) đã thấy trong batch này đều đủ mẫu
+      if (batch.length > 0 && batch.every(hasEnoughSamples)) break
       offset += PAGE_SIZE
     }
-    // pages[0] mới nhất → đảo để cũ nhất vào trước
+    // pages[0] mới nhất → đảo để cũ nhất vào trước, rồi giới hạn mỗi (platform, action_type) tối đa N mẫu
+    const capCounts = {}
     for (let i = pages.length - 1; i >= 0; i--) {
-      appendActions([...pages[i]].reverse())
+      const ordered = [...pages[i]].reverse()
+      const capped = ordered.filter(action => {
+        const key = sampleKey(action)
+        capCounts[key] = (capCounts[key] || 0) + 1
+        return capCounts[key] <= PREVIEW_SAMPLES_PER_TYPE
+      })
+      appendActions(capped)
     }
-    addLog(`✓ Loaded ${allActions.value.length} actions total`)
+    addLog(`✓ Loaded ${allActions.value.length} sample actions (max ${PREVIEW_SAMPLES_PER_TYPE}/type)`)
     phase.value = 2
     emit('update-status', 'completed')
   } catch (err) {
@@ -785,9 +831,9 @@ onMounted(() => {
   // Dùng run-status (nhẹ) + actions phân trang thay vì run-status/detail
   // (endpoint detail đọc toàn bộ file 4 lần & nhân 3 payload → rất chậm).
   if (props.previewOnly) {
-    addLog('Step3 (preview): loading existing results (paged), no re-run')
+    addLog('Step3 (preview): loading existing results, no re-run')
     fetchRunStatus()
-    loadActionsPaged()
+    loadPreviewActions()
     return
   }
 

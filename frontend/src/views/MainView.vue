@@ -77,7 +77,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import GraphPanel from '../components/GraphPanel.vue'
 import Step1GraphBuild from '../components/Step1GraphBuild.vue'
@@ -90,7 +90,10 @@ const route = useRoute()
 const router = useRouter()
 
 // Layout State
+// Step 1 (Build Graph) mặc định split để thấy graph đang dựng;
+// từ Step 2 trở đi mặc định workbench, graph chỉ load khi user tự mở graph/split
 const viewMode = ref('split') // graph | split | workbench
+const graphViewOpened = ref(true) // đã từng mở graph/split -> cho phép load/poll graph data
 
 // Step State
 const currentStep = ref(1) // 1: Xây dựng đồ thị, 2: Thiết lập môi trường, 3: Bắt đầu mô phỏng, 4: Tạo báo cáo, 5: Tương tác sâu
@@ -111,6 +114,9 @@ const systemLogs = ref([])
 // Polling timers
 let pollTimer = null
 let graphPollTimer = null
+// Ghi tạm khi graph view (graph/split) chưa được mở, để load/poll khi user mở ra
+let pendingGraphBuildTaskId = null
+let pendingGraphId = null
 
 // --- Computed Layout Styles ---
 const leftPanelStyle = computed(() => {
@@ -163,10 +169,22 @@ const handleNextStep = (params = {}) => {
   if (currentStep.value < 5) {
     currentStep.value++
   addLog(`Entering Step ${currentStep.value}: ${stepNames[currentStep.value - 1]}`)
-    
+
+    // Mỗi bước từ Step 2 trở đi luôn bắt đầu ở Workspace: không tự load graph,
+    // và xóa graph đã load ở bước trước để bước mới không còn dấu vết graph
+    if (currentStep.value >= 2) {
+      viewMode.value = 'workbench'
+      graphViewOpened.value = false
+      if (projectData.value?.graph_id) {
+        pendingGraphId = projectData.value.graph_id
+      }
+      graphData.value = null
+      systemLogs.value = systemLogs.value.filter(l => !/graph/i.test(l.msg))
+    }
+
     // Nếu chuyển từ Step 2 sang Step 3, ghi lại cấu hình số vòng mô phỏng
     if (currentStep.value === 3 && params.maxRounds) {
-      addLog(`Custom simulation rounds: ${params.maxRounds} rounds`)    
+      addLog(`Custom simulation rounds: ${params.maxRounds} rounds`)
     }
   }
 }
@@ -175,6 +193,16 @@ const handleGoBack = () => {
   if (currentStep.value > 1) {
     currentStep.value--
     addLog(`Back to Step ${currentStep.value}: ${stepNames[currentStep.value - 1]}`)
+    if (currentStep.value === 1) {
+      viewMode.value = 'split'
+      graphViewOpened.value = true
+      if (pendingGraphId) {
+        loadGraph(pendingGraphId)
+        pendingGraphId = null
+      } else if (pendingGraphBuildTaskId) {
+        startResumedGraphBuild()
+      }
+    }
   }
 }
 
@@ -243,11 +271,12 @@ const loadProject = async () => {
         await startBuildGraph()
       } else if (res.data.status === 'graph_building' && res.data.graph_build_task_id) {
         currentPhase.value = 1
-        startPollingTask(res.data.graph_build_task_id)
-        startGraphPolling()
+        pendingGraphBuildTaskId = res.data.graph_build_task_id
+        if (graphViewOpened.value) startResumedGraphBuild()
       } else if (res.data.status === 'graph_completed' && res.data.graph_id) {
         currentPhase.value = 2
-        await loadGraph(res.data.graph_id)
+        pendingGraphId = res.data.graph_id
+        if (graphViewOpened.value) await loadGraph(pendingGraphId)
       }
     } else {
       error.value = res.error
@@ -280,8 +309,8 @@ const startBuildGraph = async () => {
     const res = await buildGraph({ project_id: currentProjectId.value })
     if (res.success) {
       addLog(`Graph build task started. Task ID: ${res.data.task_id}`)
-      startGraphPolling()
-      startPollingTask(res.data.task_id)
+      pendingGraphBuildTaskId = res.data.task_id
+      if (graphViewOpened.value) startResumedGraphBuild()
     } else {
       error.value = res.error
       addLog(`Error starting build: ${res.error}`)
@@ -290,6 +319,15 @@ const startBuildGraph = async () => {
     error.value = err.message
     addLog(`Exception in startBuildGraph: ${err.message}`)
   }
+}
+
+// Bắt đầu poll graph data + task status cho task build đang chờ (được gọi ngay
+// nếu graph view đang mở, hoặc trễ hơn khi user mở graph/split lần đầu)
+const startResumedGraphBuild = () => {
+  if (!pendingGraphBuildTaskId) return
+  startGraphPolling()
+  startPollingTask(pendingGraphBuildTaskId)
+  pendingGraphBuildTaskId = null
 }
 
 const startGraphPolling = () => {
@@ -396,6 +434,19 @@ const stopGraphPolling = () => {
     addLog('Graph polling stopped.')
   }
 }
+
+// Chỉ bắt đầu load/poll graph khi user thực sự mở graph hoặc split view lần đầu
+watch(viewMode, (mode) => {
+  if (mode === 'workbench' || graphViewOpened.value) return
+  graphViewOpened.value = true
+  if (pendingGraphId) {
+    loadGraph(pendingGraphId)
+    pendingGraphId = null
+  }
+  if (pendingGraphBuildTaskId) {
+    startResumedGraphBuild()
+  }
+})
 
 onMounted(() => {
   initProject()

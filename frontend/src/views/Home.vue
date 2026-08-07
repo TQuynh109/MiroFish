@@ -64,7 +64,7 @@
           <div class="metrics-row">
             <div class="metric-card">
               <div class="metric-value">Low Cost</div>
-              <div class="metric-label">Average cost: $5 per simulation</div>
+              <div class="metric-label">Average cost: $50 per simulation</div>
             </div>
             <div class="metric-card">
               <div class="metric-value">High Availability</div>
