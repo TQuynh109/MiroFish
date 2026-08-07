@@ -120,7 +120,7 @@
               <div class="wf-step-content">
                 <div class="wf-step-title-row">
                   <span class="wf-step-index mono">{{ step.noLabel }}</span>
-                  <span class="wf-step-title">{{ step.title }}</span>
+                  <span class="wf-step-title">{{ formatSectionTitle(step.title) }}</span>
                   <span class="wf-step-meta mono" v-if="step.meta">{{ step.meta }}</span>
                 </div>
               </div>

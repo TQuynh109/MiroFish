@@ -153,6 +153,14 @@ export const getSimulationActions = (simulationId, params = {}) => {
 }
 
 /**
+ * Lấy tập actions mẫu (tối đa 20 action/loại mỗi platform) đã sinh sẵn
+ * @param {string} simulationId
+ */
+export const getSimulationActionsPreview = (simulationId) => {
+  return service.get(`/api/simulation/${simulationId}/actions/preview`)
+}
+
+/**
  * Đóng môi trường simulation (thoát an toàn)
  * @param {Object} data - { simulation_id, timeout? }
  */

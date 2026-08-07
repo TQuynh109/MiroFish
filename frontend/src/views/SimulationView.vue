@@ -67,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import GraphPanel from '../components/GraphPanel.vue'
 import Step2EnvSetup from '../components/Step2EnvSetup.vue'
@@ -85,6 +85,9 @@ const props = defineProps({
 
 // Layout State
 const viewMode = ref('workbench')
+// Mặc định workbench: không tự load graph, chỉ load khi user mở graph/split
+const graphViewOpened = ref(false)
+let pendingGraphId = null
 
 // Preview mode: chỉ load cấu hình đã chuẩn bị, không gọi prepare / không đóng env (?preview=1)
 const previewOnly = ref(route.query.preview === '1' || route.query.preview === 'true')
@@ -258,9 +261,14 @@ const loadSimulationData = async () => {
           projectData.value = projRes.data
           addLog(`Project loaded: ${projRes.data.project_id}`)
           
-          // Lay du lieu graph
+          // Lay du lieu graph: chi load ngay neu graph/split dang mo,
+          // nguoc lai luu tam va cho user tu mo
           if (projRes.data.graph_id) {
-            await loadGraph(projRes.data.graph_id)
+            if (graphViewOpened.value) {
+              await loadGraph(projRes.data.graph_id)
+            } else {
+              pendingGraphId = projRes.data.graph_id
+            }
           }
         }
       }
@@ -292,6 +300,16 @@ const refreshGraph = () => {
     loadGraph(projectData.value.graph_id)
   }
 }
+
+// Chỉ bắt đầu load graph khi user thực sự mở graph hoặc split view lần đầu
+watch(viewMode, (mode) => {
+  if (mode === 'workbench' || graphViewOpened.value) return
+  graphViewOpened.value = true
+  if (pendingGraphId) {
+    loadGraph(pendingGraphId)
+    pendingGraphId = null
+  }
+})
 
 onMounted(async () => {
   addLog('SimulationView initialized')

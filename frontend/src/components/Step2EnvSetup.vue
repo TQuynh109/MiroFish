@@ -46,7 +46,7 @@
         <div class="card-header">
           <div class="step-info">
             <span class="step-num">02</span>
-            <span class="step-title">Generate Agent Personas</span>
+            <span class="step-title">Generate Agent Profile</span>
           </div>
           <div class="step-status">
             <span v-if="phase > 1" class="badge success">Completed</span>
@@ -80,12 +80,15 @@
           <!-- Profiles List Preview -->
           <div v-if="profiles.length > 0" class="profiles-preview">
             <div class="preview-header">
-              <span class="preview-title">Generated Agent Personas</span>
+              <span class="preview-title">Generated Agent Profile</span>
+              <span v-if="profiles.length > displayProfiles.length" class="preview-more">
+                Showing {{ displayProfiles.length }}/{{ profiles.length }}
+              </span>
             </div>
             <div class="profiles-list">
-              <div 
-                v-for="(profile, idx) in profiles" 
-                :key="idx" 
+              <div
+                v-for="(profile, idx) in displayProfiles"
+                :key="idx"
                 class="profile-card"
                 @click="selectProfile(profile)"
               >
@@ -183,12 +186,14 @@
             <div class="config-block">
               <div class="config-block-header">
                 <span class="config-block-title">Agent Configuration</span>
-                <span class="config-block-badge">{{ simulationConfig.agent_configs?.length || 0 }} items</span>
+                <span class="config-block-badge">
+                  {{ displayAgentConfigs.length }}/{{ simulationConfig.agent_configs?.length || 0 }} items
+                </span>
               </div>
               <div class="agents-cards">
-                <div 
-                  v-for="agent in simulationConfig.agent_configs" 
-                  :key="agent.agent_id" 
+                <div
+                  v-for="agent in displayAgentConfigs"
+                  :key="agent.agent_id"
                   class="agent-card"
                 >
                   <!-- Card Header -->
@@ -272,7 +277,7 @@
               <div class="platforms-grid">
                 <div v-if="simulationConfig.twitter_config" class="platform-card">
                   <div class="platform-card-header">
-                    <span class="platform-name">Platform 1: Feed / Timeline</span>
+                    <span class="platform-name">X (Twitter)</span>
                   </div>
                   <div class="platform-params">
                     <div class="param-row">
@@ -299,7 +304,7 @@
                 </div>
                 <div v-if="simulationConfig.reddit_config" class="platform-card">
                   <div class="platform-card-header">
-                    <span class="platform-name">Platform 2: Topic / Community</span>
+                    <span class="platform-name">Reddit</span>
                   </div>
                   <div class="platform-params">
                     <div class="param-row">
@@ -662,7 +667,8 @@ const entityTypes = ref([])
 const expectedTotal = ref(null)
 const simulationConfig = ref(null)
 const selectedProfile = ref(null)
-const showProfilesDetail = ref(true)
+const showProfilesDetail = ref(false)
+const PROFILES_PREVIEW_LIMIT = 20
 
 // Deduplicate logs: record the last key information that was output
 let lastLoggedMessage = ''
@@ -714,7 +720,11 @@ const displayProfiles = computed(() => {
   if (showProfilesDetail.value) {
     return profiles.value
   }
-  return profiles.value.slice(0, 6)
+  return profiles.value.slice(0, PROFILES_PREVIEW_LIMIT)
+})
+
+const displayAgentConfigs = computed(() => {
+  return (simulationConfig.value?.agent_configs || []).slice(0, PROFILES_PREVIEW_LIMIT)
 })
 
 // Get the corresponding username by agent_id
@@ -914,7 +924,11 @@ const fetchProfilesRealtime = async () => {
     
     if (res.success && res.data) {
       const prevCount = profiles.value.length
-      profiles.value = res.data.profiles || []
+      const fetchedProfiles = res.data.profiles || []
+      // Chế độ preview: chỉ cần xem trước, giữ lại tối đa 20 profile thay vì toàn bộ
+      profiles.value = props.previewOnly
+        ? fetchedProfiles.slice(0, PROFILES_PREVIEW_LIMIT)
+        : fetchedProfiles
       // Update only when the API returns a valid value to avoid overwriting existing valid values
       if (res.data.total_expected) {
         expectedTotal.value = res.data.total_expected
@@ -1326,6 +1340,12 @@ onUnmounted(() => {
   color: #666;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.preview-more {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #999;
 }
 
 .profiles-list {
